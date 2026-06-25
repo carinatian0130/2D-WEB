@@ -1,0 +1,17 @@
+# Private local configuration
+.env
+**/.env
+
+# Runtime/user data
+uploads/
+**/uploads/
+*.db
+*.db-shm
+*.db-wal
+
+# Large archives and temporary packages
+*.zip
+
+# OS/editor noise
+Thumbs.db
+.DS_Store

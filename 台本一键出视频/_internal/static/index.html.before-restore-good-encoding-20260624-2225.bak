@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script to Video - Production Flow</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260624-uncut-02-01">
+    <script>
+        if (location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="./style.css?v=20260624-uncut-02-01">');
+        }
+    </script>
+</head>
+<body>
+    <div class="app">
+        <!-- 渚ц竟瀵艰埅 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">AI</span>
+                <span class="logo-text">鍙版湰鍑鸿棰</span>
+            </div>
+            <div class="sidebar-status">
+                <span>涓荤嚎</span>
+                <strong>鍙版湰 鈫?Image 鈫?鍒嗛暅 鈫?瑙嗛</strong>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-section-label">宸ヤ綔鍙</li>
+                <li class="nav-item nav-primary" data-tab="workbench">
+                    <span class="nav-icon nav-icon-workbench" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>椤圭洰宸ヤ綔鍙</strong><small>鎬昏</small></span>
+                </li>
+                <li class="nav-section-label">鐢熸垚</li>
+                <li class="nav-item active nav-primary" data-tab="script">
+                    <span class="nav-icon nav-icon-video" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>鍒剁墖娴佹按绾</strong><small>涓荤嚎</small></span>
+                </li>
+                <li class="nav-item nav-optional" data-tab="script-breakdown">
+                    <span class="nav-icon nav-icon-script-breakdown" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>鍓ф湰棰勫鐞</strong><small>Extra</small></span>
+                </li>
+                <li class="nav-section-label">宸ュ叿</li>
+                <li class="nav-item" data-tab="video-editor">
+                    <span class="nav-icon nav-icon-video-editor" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>瑙嗛缂栬緫</strong><small>鎴愮墖淇ˉ</small></span>
+                </li>
+                <li class="nav-item nav-optional" data-tab="ue5-json">
+                    <span class="nav-icon nav-icon-engine" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>寮曟搸瀵煎嚭</strong><small>鍙€</small></span>
+                </li>
+                <li class="nav-item" data-tab="reference-3d">
+                    <span class="nav-icon nav-icon-3d" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>3D鍙傝€</strong><small>鏋勫浘杈呭姪</small></span>
+                </li>
+                <li class="nav-section-label">璧勪骇</li>
+                <li class="nav-item" data-tab="scenes">
+                    <span class="nav-icon nav-icon-scenes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>鍦烘櫙搴</strong><small>绱犳潗</small></span>
+                </li>
+                <li class="nav-item" data-tab="characters">
+                    <span class="nav-icon nav-icon-characters" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>浜虹墿搴</strong><small>瑙掕壊</small></span>
+                </li>
+                <li class="nav-item" data-tab="assets">
+                    <span class="nav-icon nav-icon-assets" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>璧勪骇搴</strong><small>娴忚</small></span>
+                </li>
+                <li class="nav-item" data-tab="prompt-library">
+                    <span class="nav-icon nav-icon-prompt" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>鎻愮ず璇嶅簱</strong><small>澶嶇敤</small></span>
+                </li>
+                <li class="nav-section-label">绯荤粺</li>
+                <li class="nav-item" data-tab="projects">
+                    <span class="nav-icon nav-icon-projects" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>椤圭洰绠＄悊</strong><small>褰掓。</small></span>
+                </li>
+                <li class="nav-item" data-tab="director-modes">
+                    <span class="nav-icon nav-icon-modes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>瑙嗛妯″紡</strong><small>妯℃澘</small></span>
+                </li>
+                <li class="nav-item" data-tab="settings">
+                    <span class="nav-icon nav-icon-settings" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>璁剧疆</strong><small>杩炴帴</small></span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 涓诲唴瀹瑰尯 -->
+        <main class="main-content">
+
+            <div class="top-project-bar">
+                <div class="top-project-info">
+                    <span class="top-project-label">褰撳墠椤圭洰</span>
+                    <strong id="currentProjectName">鍔犺浇涓?..</strong>
+                    <span id="currentProjectMeta">姝ｅ湪鍔犺浇鏈€鏂伴」鐩</span>
+                </div>
+                <div class="top-project-actions">
+                    <button id="btnOpenCurrentProject" class="btn btn-sm btn-secondary" onclick="openCurrentProjectFromBar()">鎵撳紑椤圭洰</button>
+                    <button class="btn btn-sm btn-primary" onclick="showTopProjectModal()"><span class="btn-icon">+</span> 鏂板缓椤圭洰</button>
+                </div>
+            </div>
+
+            <!-- 椤圭洰宸ヤ綔鍙?-->
+            <section id="tab-workbench" class="tab-content">
+                <div class="workbench-shell">
+                    <div class="workbench-hero">
+                        <div class="workbench-hero-copy">
+                            <span class="eyebrow">椤圭洰鎬绘帶</span>
+                            <h1>鍙版湰鍒板垎闀滐紝鍐嶅埌瑙嗛</h1>
+                            <p class="page-desc">涓荤嚎鍏堟妸鍙版湰鑷姩鍒嗘鎴?Image Prompt锛岀‘璁ゅ悗鍐嶆墜鍔ㄧ敓鎴愬垎闀滃浘銆乂ideo Prompt 鍜岃棰戯紱3D 鍙傝€冦€佸紩鎿庡鍑恒€佽棰戠紪杈戜笌绱犳潗搴撲綔涓?Extra 淇濈暀銆</p>
+                        </div>
+                        <div class="workbench-hero-rail">
+                            <div id="workbenchNextAction" class="workbench-next-action"></div>
+                            <div class="workbench-optional-note">
+                                <span>鍙€夊寮</span>
+                                <button type="button" onclick="switchToTab('storyboard')">鍒嗛暅杈呭姪</button>
+                                <button type="button" onclick="switchToTab('reference-3d')">3D鍙傝€</button>
+                                <button type="button" onclick="switchToTab('ue5-json')">寮曟搸瀵煎嚭</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="workbenchKpiGrid" class="workbench-kpi-grid"></div>
+
+                    <div class="workbench-layout">
+                        <div class="workbench-main-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>鍒剁墖娴佹按绾</h3>
+                                        <p>鎸?Image Prompt銆佸垎闀滃浘銆乂ideo Prompt銆佽棰戠殑椤哄簭鎺ㄨ繘锛岀姸鎬佷細浠庨」鐩拰鐗囨閲岃嚜鍔ㄨ鍙栥€</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">鎵撳紑鍒剁墖娴佹按绾</button>
+                                </div>
+                                <div id="workbenchFlowSteps" class="workbench-flow-steps"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>鐗囨鏃堕棿绾</h3>
+                                        <p>鏌ョ湅鍒嗛暅銆佽棰戝拰鐢熸垚鐘舵€侊紝蹇€熻烦杞埌褰撳墠鐗囨缂栬緫銆</p>
+                                    </div>
+                                    <div class="workbench-panel-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">缂栬緫鐗囨</button>
+                                        <button class="btn btn-sm btn-primary" onclick="generateAllVideos()">鍏ㄩ儴鐢熸垚</button>
+                                    </div>
+                                </div>
+                                <div id="workbenchSegmentList" class="workbench-segment-list"></div>
+                            </div>
+                        </div>
+
+                        <aside class="workbench-side-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>浠诲姟涓績</h3>
+                                        <p>闀夸换鍔′笉浼氶樆濉炰綘缁х画妫€鏌ラ」鐩€</p>
+                                    </div>
+                                </div>
+                                <div id="workbenchTaskCenter" class="workbench-task-center"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>蹇嵎鍏ュ彛</h3>
+                                        <p>鍥寸粫褰撳墠椤圭洰缁х画澶勭悊銆</p>
+                                    </div>
+                                </div>
+                                <div class="workbench-shortcuts">
+                                    <button class="btn btn-secondary" onclick="switchToTab('scenes')">鍦烘櫙搴</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('characters')">浜虹墿搴</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('video-editor')">瑙嗛缂栬緫</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('ue5-json')">瀵煎叆寮曟搸</button>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 鍓ф湰澶勭悊椤?-->
+            <section id="tab-script-breakdown" class="tab-content">
+                <div class="page-header">
+                    <h1>Extra锛氬墽鏈澶勭悊</h1>
+                    <p class="page-desc">鍙€?Extra锛氬厛鎷嗚В鍘熷鍓ф湰锛屽啀澶嶅埗鍒板埗鐗囨祦姘寸嚎鎴栧壀璐存澘</p>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="Input" data-output-title="Output">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-rail-title>鍘熷鍓ф湰</strong>
+                        <span data-workflow-rail-action>灞曞紑杈撳叆鍖</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>杈撳叆涓庢媶瑙ｈ缃</strong>
+                                <span>缁撴灉鐢熸垚鍚庡彲鏀惰捣锛屼笓娉ㄦ牎瀵瑰彸渚ф媶瑙ｇ銆</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script-breakdown')">鏀惰捣杈撳叆</button>
+                        </div>
+                        <div class="card flow-script-input-card">
+                            <div class="card-header">
+                                <h3>馃摑 鍘熷鍓ф湰</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownInput" placeholder="鍦ㄦ绮樿创鍘熷鍓ф湰锛孉I 浼氭媶瑙ｄ负鍙户缁鐞嗙殑娈佃惤缁撴瀯..." rows="16"></textarea>
+                            </div>
+                        </div>
+                        <div class="card flow-material-card">
+                            <div class="card-header">
+                                <h3>鈿欙笍 鎷嗚В瑕佹眰</h3>
+                                <span class="badge">鍙€</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownInstruction" rows="10" placeholder="鍙€夛細琛ュ厖鎷嗚В鍋忓ソ锛屼緥濡傛寜鍦烘櫙鎷嗐€佹寜瀵圭櫧瀵嗗害鎷嗐€佸己鍖栦汉鐗╄鍔ㄧ嚎銆侀€傞厤鐭棰戣妭濂忕瓑銆">浣犳槸AI鐭棰戠敓浜ф祦绋嬩腑鐨勨€滃墽鏈粺绛逛笌绌洪棿杩炵画鎬ф媶瑙ｅ笀鈥濄€?
+椤圭洰娴佺▼鑳屾櫙锛氬悗缁瑼I缂栧浼氭妸鍓ф湰缁х画鎷嗘垚澶氫釜鈮?5绉掔殑瑙嗛鐗囨锛涙瘡涓棰戠墖娈典細鐢熸垚銆愰甯ч敋瀹氬浘銆戝拰銆愬熬甯ц鎺ュ浘銆戯紝骞跺湪瑙嗛鐢熸垚鏃朵笌鍦烘櫙鍥俱€佷汉鐗╁浘涓€璧蜂綔涓烘渶澶?寮犲弬鑰冨浘杈撳叆銆傚洜姝や綘鐨勬媶瑙ｄ笉鏄櫘閫氬墽鎯呮憳瑕侊紝鑰屾槸瑕佷负鍚庣画瑙嗛鍒嗛暅銆丄I缁樼敾棣栧熬甯с€佺┖闂翠竴鑷存€у拰璺ㄧ墖娈佃鎺ユ彁渚涙竻鏅颁緷鎹€?
+浠诲姟锛氭妸鐢ㄦ埛鎻愪緵鐨勫師濮嬪墽鏈媶瑙ｆ垚缁撴瀯娓呮櫚銆佸彲缁х画浜ょ粰瑙嗛鍙版湰缂栧/棣栧熬甯х粯鐢绘彁绀鸿瘝缂栧澶勭悊鐨勨€滄媶瑙ｅ悗鍓ф湰鈥濄€備笉瑕佺洿鎺ョ敓鎴愯棰戞彁绀鸿瘝锛屼笉瑕佺洿鎺ョ敓鎴愮粯鐢绘彁绀鸿瘝锛屽彧杈撳嚭鎷嗚В鍚庣殑鍓ф湰姝ｆ枃銆?
+杈撳嚭瑙勫垯锛?1. 鎸夊墽鎯呴『搴忔媶鎴愯嫢骞插墽鎯呮钀斤紝姣忔鐢ㄢ€?==SCRIPT_SPLIT===鈥濆垎闅斻€?2. 姣忔蹇呴』灏介噺瀵瑰簲涓€涓浉瀵硅繛缁殑鏃剁┖/鍦烘櫙鍗曞厓锛涘鏋滃満鏅€佹椂闂淬€佷汉鐗╃珯浣嶅叧绯绘垨鍓ф儏鐩爣鍙戠敓鏄庢樉鍙樺寲锛屽簲鎷嗘垚鏂版銆?3. 姣忔蹇呴』鍖呭惈浠ヤ笅灏忚妭锛屼笖灏忚妭鍚嶇О淇濇寔涓€鑷达細
+   娈佃惤鏍囬
+   鍦烘櫙/鏃剁┖
+   鍑哄満浜虹墿
+   鍓ф儏鐩爣
+   鍔ㄤ綔涓庡鐧?   鎯呯华鑺傚
+   鍏抽敭閬撳叿
+   绌洪棿鍏崇郴涓庣珯浣?   棣栧抚閿氬畾渚濇嵁
+   灏惧抚琛旀帴渚濇嵁
+   杩炵画鎬у娉?4. 銆愬姩浣滀笌瀵圭櫧銆戝繀椤讳繚鐣欏師濮嬪鐧姐€佽璇濅汉銆佽璇濋『搴忓拰鍏抽敭鍔ㄤ綔锛屼笉瑕佷涪澶变汉鐗╁叧绯讳笌鍓ф儏鍥犳灉銆?5. 銆愮┖闂村叧绯讳笌绔欎綅銆戝繀椤诲啓娓咃細涓昏鍥哄畾鍙傜収鐗┿€佷汉鐗╁湪鍦烘櫙涓殑鐩稿浣嶇疆銆佸乏鍙冲叧绯汇€佸墠鍚庡眰娆°€佽窛绂汇€佽韩浣撴湞鍚戙€佽绾垮叧绯汇€佸厜绾挎柟鍚戞垨闀滃ご杞寸嚎绾跨储銆?6. 銆愰甯ч敋瀹氫緷鎹€戝彧鎻忚堪鏈寮€濮嬫椂鍙敾鎴愬崟寮犻潤鎬佸浘鐨勭‘瀹氱姸鎬侊細璋佸湪鐢婚潰宸?涓?鍙筹紝璋佸湪鍓嶆櫙/涓櫙/鑳屾櫙锛岄潬杩戜粈涔堝浐瀹氱墿锛屽姩浣滃Э鍔垮拰琛ㄦ儏鏄粈涔堛€?7. 銆愬熬甯ц鎺ヤ緷鎹€戝彧鎻忚堪鏈缁撴潫鏃跺彲鐢绘垚鍗曞紶闈欐€佸浘鐨勭‘瀹氱姸鎬侊細浜虹墿鏄惁浣嶇Щ銆佺珯浣嶆槸鍚︽敼鍙樸€佽绾?濮垮娍/閬撳叿鐘舵€佸浣曪紝涓轰笅涓€娈佃鎺ユ彁渚涗緷鎹€?8. 銆愯繛缁€у娉ㄣ€戣鏄庝笌涓婁竴娈?涓嬩竴娈甸渶瑕佷繚鎸佷笉鍙樼殑鍦烘櫙鍏冪礌銆佷汉鐗╂柟鍚戙€侀亾鍏风姸鎬併€佸厜绾裤€佽酱绾裤€佹湇瑁呭拰鎯呯华寤剁画銆?9. 涓嶈杈撳嚭瑙ｉ噴璇存槑锛屼笉瑕佽緭鍑篔SON锛屼笉瑕佽緭鍑篗arkdown琛ㄦ牸锛屼笉瑕佺敓鎴愯棰戝垎闀滅紪鍙凤紝涓嶈鐢熸垚AI缁樼敾鎻愮ず璇嶃€?10. 濡傛灉鍘熷墽鏈緢鐭紝涔熻嚦灏戞暣鐞嗘垚涓€涓畬鏁存钀姐€</textarea>
+                            </div>
+                        </div>
+                        <button id="btnBreakdownScript" class="btn btn-primary btn-lg" onclick="breakdownScript()">
+                            <span class="btn-icon">馃З</span> AI鎷嗚В鍓ф湰
+                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-output-title>鎷嗚В缁撴灉</strong>
+                        <span data-workflow-output-action>绛夊緟杈撳嚭</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div id="breakdownPlaceholderCard" class="card">
+                            <div class="card-header"><h3>馃З 鎷嗚В缁撴灉</h3></div>
+                            <div class="card-body">
+                                <div class="result-placeholder">
+                                    <div class="placeholder-icon">馃З</div>
+                                    <p>鎷嗚В鍚庣殑鍓ф湰灏嗗湪杩欓噷鏄剧ず锛屽彲缁х画杩涘叆鍒嗛暅鎴栬棰戞祦绋</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="breakdownResultPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3>馃搵 鎷嗚В鍚庡墽鏈</h3>
+                                <span id="breakdownPartCount" class="badge">0娈</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownResultText" class="breakdown-result-editor" rows="20" placeholder="鎷嗚В缁撴灉鍙湪杩欓噷缁х画缂栬緫"></textarea>
+                                <div class="breakdown-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="copyBreakdownToClipboard()">澶嶅埗鍒板壀璐存澘</button>
+                                    <button class="btn btn-sm btn-primary" onclick="fillBreakdownToVideo()">濉叆鍒剁墖娴佹按绾</button>
+                                    <button class="btn btn-sm btn-success" onclick="fillBreakdownToVideoAndOpen()">濉叆瑙嗛骞舵墦寮€</button>
+                                </div>
+                                <div class="storyboard-mode-tips">
+                                    <div>鈥?璺嚎 A锛氬師濮嬪墽鏈?鈫?鍙€?AI 鎷嗚В 鈫?鍒剁墖娴佹按绾跨敓鎴?Image Prompt 鈫?鍒嗛暅鍥?鈫?Video Prompt 鈫?瑙嗛銆</div>
+                                    <div>鈥?涓荤嚎宸查粯璁ら泦鎴?Image Prompt 鍜屽垎闀滃浘椹卞姩锛涜繖閲屼粎浣滀负鍓嶇疆鏁寸悊 Extra 淇濈暀銆</div>
+                                    <div>鈥?鎷嗚В缁撴灉鍙紪杈戝悗鍐嶅～鍏ュ叾浠栨枃鏈銆</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 鍒剁墖娴佹按绾块〉 -->
+            <section id="tab-script" class="tab-content active">
+                <div class="production-flow-top">
+                    <div class="production-flow-titlebar">
+                        <h1>鍒剁墖娴佹按绾</h1>
+                        <button type="button" class="btn btn-primary production-title-action" onclick="processScript()">寮€濮嬪埗鐗</button>
+                    </div>
+                    <div class="production-top-banner" id="productionTopBanner">
+                        <button type="button" class="production-top-step active" data-flow-step="script" onclick="focusProductionFlowStep('script')">
+                            <span class="top-step-no">01</span>
+                            <span class="top-step-copy">
+                                <strong>鍙版湰</strong>
+                                <small id="flowStepScriptMeta">绛夊緟鍙版湰</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="video" onclick="focusProductionFlowStep('video')">
+                            <span class="top-step-no">02</span>
+                            <span class="top-step-copy">
+                                <strong>鍒嗛暅 / 瑙嗛</strong>
+                                <small id="flowStepVideoMeta">绛夊緟 Video Prompt</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="edit" onclick="focusProductionFlowStep('edit')">
+                            <span class="top-step-no">03</span>
+                            <span class="top-step-copy">
+                                <strong>缂栬緫</strong>
+                                <small id="flowStepEditMeta">绛夊緟瑙嗛</small>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="Input" data-output-title="Output">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-rail-title>鍙版湰涓庣礌鏉</strong>
+                        <span data-workflow-rail-action>灞曞紑杈撳叆鍖</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>鍙版湰涓庣礌鏉</strong>
+                                <span>杈撳叆鍙版湰锛岀‘璁や汉鐗╁拰鍦烘櫙銆</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script')">鏀惰捣杈撳叆</button>
+                        </div>
+                        <div class="card flow-script-input-card">
+                            <div class="card-header">
+                                <h3>馃摑 杈撳叆鍙版湰</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="scriptInput" placeholder="鍦ㄦ绮樿创瀹屾暣鍘熷鍙版湰锛屼笉闇€瑕佹彁鍓嶆媶娈点€傜郴缁熶細鎸夋儏缁妭濂忓拰棰勮鏃堕暱鑷姩鍒嗘垚15绉掍互鍐呮钀斤紝骞剁洿鎺ョ敓鎴愭瘡娈?Image Prompt銆?#10;&#10;渚嬪锛?#10;鏃惰繍锛氬ぇ瀹跺噯澶囧ソ浜嗗悧锛熻繖娆′换鍔′笉绠€鍗曘€?#10;闆呯幉锛氬笀鍏勶紝鎴戜滑閮藉噯澶囧ソ浜嗐€?#10;灏忔槦锛氬樋鍢匡紝浜ょ粰鎴戝惂锛? rows="16"></textarea>
+                                <div id="scriptPromptMentions" class="prompt-mention-row"></div>
+                            </div>
+                        </div>
+
+                        <details id="advancedGenerationSettings" class="card collapsible-card advanced-settings-card">
+                            <summary class="card-header collapsible-summary">
+                                <div class="advanced-settings-heading">
+                                    <h3>鈿欙笍 楂樼骇鐢熸垚璁剧疆</h3>
+                                    <div id="advancedSettingsSummary" class="advanced-settings-summary">
+                                        <span id="advancedModeSummary">妯″紡锛氶粯璁</span>
+                                        <span id="advancedInstructionSummary">棰濆瑕佹眰锛氭棤</span>
+                                        <span id="advancedStoryboardSummary">鍒嗛暅椹卞姩锛氫富绾垮惎鐢</span>
+                                    </div>
+                                </div>
+                                <div class="collapsible-actions">
+                                    <span class="badge">鍙€</span>
+                                </div>
+                            </summary>
+                            <div class="card-body">
+                                <div class="advanced-settings-grid">
+                                    <div class="form-group advanced-setting-block advanced-setting-block-wide">
+                                        <label for="scriptProcessInstruction">棰濆瑕佹眰</label>
+                                        <textarea id="scriptProcessInstruction" rows="4" placeholder="鍙€夛細渚嬪寮鸿皟鑺傚銆佹洿缁嗗垎鍔ㄤ綔銆佷繚鐣欐煇浜涘彴璇嶃€侀伩鍏嶆柊澧炶鑹层€佺粺涓€闀滃ご椋庢牸绛夈€? oninput="updateAdvancedSettingsSummary()"></textarea>
+                                        <div id="instructionPromptMentions" class="prompt-mention-row"></div>
+                                        <div class="instruction-file-row">
+                                            <span>涓婁紶鎸囧鏂囦欢</span>
+                                            <input type="file" accept=".md,.txt,text/markdown,text/plain" onchange="loadInstructionFileToTextarea(this, 'scriptProcessInstruction')">
+                                        </div>
+                                        <small class="field-hint">鍙奖鍝嶆湰娆?Image Prompt / Video Prompt 涓荤嚎锛屼笉浼氫慨鏀硅棰戞ā寮忔彁绀鸿瘝銆</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="directorModeSelect">瑙嗛妯″紡</label>
+                                            <button class="btn btn-sm btn-secondary" onclick="switchToTab('director-modes')">绠＄悊妯″紡</button>
+                                        </div>
+                                        <select id="directorModeSelect" onchange="updateAdvancedSettingsSummary()"></select>
+                                        <small id="directorModeHint" class="field-hint">鍙湪鈥滄ā寮忕鐞?鈫?瑙嗛妯″紡鈥濅腑鏂板銆佺紪杈戙€佹敼鍚嶃€</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block storyboard-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="storyboardModeToggle">鍒嗛暅鍥鹃┍鍔</label>
+                                            <span id="storyboardToggleText" class="advanced-state-text">鏈惎鐢</span>
+                                        </div>
+                                        <label class="switch-row storyboard-toggle-row">
+                                            <input type="checkbox" id="storyboardModeToggle" onchange="setStoryboardPromptsEnabled(this.checked)">
+                                            <span class="switch-control" aria-hidden="true"></span>
+                                            <span>涓荤嚎浣跨敤鍒嗛暅鍥鹃┍鍔ㄨ棰</span>
+                                        </label>
+                                        <small id="storyboardToggleHint" class="field-hint">涓荤嚎浼氳嚜鍔ㄥ垎娈靛苟鐢熸垚 Image Prompt锛涘垎闀滃浘銆乂ideo Prompt 鍜岃棰戦渶瑕佺敤鎴锋鏌ュ悗鎵嬪姩鐢熸垚銆傚叧闂粎鐢ㄤ簬鍏煎鏃ф祦绋嬨€</small>
+                                        <button id="storyboardEnableShortcut" type="button" class="btn btn-sm btn-secondary" onclick="setStoryboardPromptsEnabled(true)">鍚敤涓荤嚎鍒嗛暅椹卞姩</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                        <select id="storyboardRatioSelect" class="hidden"><option value="16:9">16:9</option></select>
+
+                        <!-- 鏈墽鏈細鐢ㄥ埌鐨勭礌鏉愶細鍐冲畾 AI 涓婁笅鏂囦笌鍙版湰涓?@ 鍊欓€夎寖鍥?-->
+                        <div class="card flow-material-card">
+                            <div class="card-header">
+                                <h3>馃幆 鏈墽鏈細鐢ㄥ埌鐨勭礌鏉</h3>
+                                <span class="badge">寤鸿鍕鹃€</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="field-hint" style="margin-bottom:8px;">鍕句笂杩欐鍙版湰閲屼細鍑虹幇鐨勪汉鐗╁拰鍦烘櫙锛孉I 浼氬湪 Image Prompt 閲屽缓绔嬭鑹查攣銆佸満鏅攣鍜屽弬鑰冨浘椤哄簭銆?br>鍚庣画鐢熸垚鍒嗛暅鍥惧拰瑙嗛鏃讹紝@ 鍒扮殑浜虹墿/鍦烘櫙浼氫綔涓哄弬鑰冨浘锛涘嬀浜嗕絾娌?@ 鍒扮殑锛屼篃浼氫竴璧蜂綔涓鸿緟鍔╁弬鑰冦€</div>
+                                <div class="select-group">
+                                    <label>鏈墽鏈敤鍒扮殑鍦烘櫙</label>
+                                    <div id="sceneSelect" class="chip-select"></div>
+                                </div>
+                                <div class="select-group">
+                                    <label>鏈墽鏈嚭鍦虹殑浜虹墿</label>
+                                    <div id="charSelect" class="chip-select"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btnProcess" class="btn btn-primary btn-lg" onclick="processScript()">
+                            <span class="btn-icon">鈻</span> 鐢熸垚鍒嗘 Image Prompt
+                        </button>
+                    </div>
+
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-output-title>鐗囨娴佹按绾</strong>
+                        <span data-workflow-output-action>绛夊緟杈撳嚭</span>
+                    </button>
+                    <div class="script-result-area">
+                        <!-- 鍒濆鍗犱綅 -->
+                        <div id="resultPlaceholderCard" class="card">
+                            <div class="card-header">
+                                <h3>馃幀 鐗囨娴佹按绾</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultArea" class="result-placeholder">
+                                    <div class="placeholder-icon">馃帴</div>
+                                    <p>鐢熸垚鍚庯紝姣忎釜鐭钀戒細鍗曠嫭鏄剧ず涓轰竴涓?Prompt 鏍煎瓙</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 鐗囨娴佹按绾匡紙鍙紪杈戯級 -->
+                        <div id="storyboardPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3 id="storyboardPanelTitle">馃搵 鐗囨娴佹按绾</h3>
+                                <div id="storyboardPreviewActions" class="storyboard-preview-actions">
+                                    <span id="segmentCount" class="badge">0涓狪mage娈佃惤</span>
+                                    <span id="storyboardPromptToggleStatus" class="badge storyboard-advanced-action">鍒嗛暅椹卞姩宸插惎鐢</span>
+                                    <button id="storyboardPromptToggleBtn" class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleStoryboardPromptsEnabled()">鍏煎鏃ф祦绋</button>
+                                    <button id="generateAllStoryboardPromptsBtn" class="btn btn-sm btn-primary hidden" onclick="generateAllStoryboardPrompts()">馃 閲嶆柊鐢熸垚 Image Prompt</button>
+                                    <button class="btn btn-sm btn-success storyboard-advanced-action" onclick="importSegmentsToUe5JsonText()">瀵煎嚭寮曟搸JSON</button>
+                                    <button class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleRawView()">鏌ョ湅鍘熸枃</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 鍘熷鏂囨湰锛堝彲鍒囨崲鏌ョ湅锛?-->
+                                <div id="rawResultPanel" class="hidden" style="margin-bottom:16px">
+                                    <div id="resultContent" class="result-content" style="max-height:300px"></div>
+                                    <hr style="border-color:var(--border);margin:12px 0">
+                                </div>
+                                <!-- 鍒嗙墖娈电紪杈戝尯 -->
+                                <div id="segmentsList" class="segments-list"></div>
+                            </div>
+                            <div id="mergedVideoPanel" class="merged-video-panel hidden"></div>
+                            <div id="storyboardPanelFooter" class="card-footer" style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+                                <button class="btn btn-success" onclick="generateAllVideos()">
+                                    <span class="btn-icon">馃殌</span> 鍏ㄩ儴鐢熸垚
+                                </button>
+                                <button class="btn btn-success" onclick="generateAllVideosSequentially(this)">
+                                    <span class="btn-icon">馃敆</span> 鎸夐『搴忕敓鎴愬苟寮曠敤涓婁釜瑙嗛
+                                </button>
+                                <button class="btn btn-primary" onclick="mergeProjectVideos()">
+                                    <span class="btn-icon">馃帪锔</span> 涓€閿嫾鎺?                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 瀵煎叆寮曟搸涓撳睘鐢熸垚椤?-->
+            <section id="tab-ue5-json" class="tab-content">
+                <div class="page-header page-hero optional-page-hero">
+                    <div>
+                        <span class="eyebrow">鍙€夊鍑</span>
+                        <h1>寮曟搸瀵煎嚭</h1>
+                        <p class="page-desc">闇€瑕?UE 鎴栧紩鎿庝晶杩囧満鍔ㄧ敾鏃讹紝鍐嶄粠褰撳墠椤圭洰鏁寸悊骞跺鍑?JSON銆</p>
+                    </div>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="Input" data-output-title="Output">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-rail-title>鏁寸悊绋胯緭鍏</strong>
+                        <span data-workflow-rail-action>灞曞紑杈撳叆鍖</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>鍙版湰鏁寸悊</strong>
+                                <span>瀵煎嚭 JSON 鍚庡彲鏀惰捣锛屽彸渚т笓娉ㄦ牎楠屽拰闀滃ご鍙傛暟銆</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('ue5-json')">鏀惰捣杈撳叆</button>
+                        </div>
+                        <div id="ue5JsonSourceStepCard" class="card ue5-json-step-card">
+                            <div class="card-header">
+                                <h3>馃摑 绗竴姝ワ細鏁寸悊鍙版湰</h3>
+                                <span class="badge">GPT澶勭悊</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>鍘熷鍙版湰</label>
+                                    <textarea id="ue5JsonTextInput" rows="10" placeholder="绮樿创瑙嗛鍙版湰锛屾垨浠庤棰戠敓鎴愰〉涓€閿鍏ャ€傜涓€姝ヤ細鍏堣緭鍑哄叏浣撲汉鐗╃珯浣嶄俊鎭紝鍐嶄繚鐣欓暅澶存弿杩般€佽璇濅汉銆佽璇濇椂闀垮拰鍔ㄤ綔淇℃伅銆"></textarea>
+                                    <small class="field-hint">绗竴姝ヤ笉浼氬鍑?JSON锛屽彧鐢熸垚缁欎綘纭鍜屼慨鏀圭殑绔欎綅涓庨暅澶存暣鐞嗙銆</small>
+                                </div>
+                                <button id="btnPrepareUe5JsonText" class="btn btn-primary btn-lg" onclick="prepareUe5JsonText()">
+                                    <span class="btn-icon">馃</span> 绗竴姝ワ細GPT鏁寸悊鍙版湰
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="ue5JsonPreparedStepCard" class="card ue5-json-step-card ue5-json-step-hidden">
+                            <div class="card-header">
+                                <h3>鉁?绗簩姝ュ墠锛氱‘璁ゆ暣鐞嗙</h3>
+                                <span id="ue5PreparedStatus" class="badge">寰呮暣鐞</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>鍙紪杈戠‘璁ょ</label>
+                                    <textarea id="ue5JsonPreparedText" rows="14" placeholder="绗竴姝ョ敓鎴愬悗浼氬嚭鐜板湪杩欓噷銆傝浼樺厛妫€鏌ュ叏浣撲汉鐗╃珯浣嶄俊鎭紝鍐嶄慨鏀归暅澶存弿杩般€佽璇濅汉銆佽璇濇椂闀垮拰鍔ㄤ綔淇℃伅锛屾渶鍚庣偣鍑讳笅鏂规寜閽鍑?JSON銆"></textarea>
+                                    <small class="field-hint">杩欓噷鐨勫唴瀹逛細浣滀负绗簩姝ョ敓鎴?JSON 鐨勫敮涓€鏂囨湰渚濇嵁銆</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btnGenerateUe5JsonDirect" class="btn btn-success btn-lg ue5-json-step-hidden" onclick="generateUe5JsonDirect()">
+                            <span class="btn-icon">馃摝</span> 绗簩姝ワ細涓€閿鍑?JSON
+                        </button>
+                    </div>
+
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-output-title>瀵煎嚭缁撴灉</strong>
+                        <span data-workflow-output-action>绛夊緟杈撳嚭</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃摝 鐢熸垚缁撴灉</h3>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <span id="ue5JsonStatus" class="badge">寰呯敓鎴</span>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="triggerUe5JsonImportFile()">瀵煎叆JSON</button>
+                                    <input id="ue5JsonImportInput" type="file" accept=".json,application/json" onchange="importUe5JsonFile(this.files?.[0]); this.value=''">
+                                    <button id="btnDownloadUe5JsonDirect" class="btn btn-sm btn-secondary hidden" onclick="downloadLastUe5JsonDirect()">涓嬭浇鏂囦欢</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5JsonSummary" class="local-path">瀹屾垚绗竴姝ョ‘璁ょ鍚庯紝鐐瑰嚮绗簩姝ュ鍑?JSON锛岀粨鏋滀細鑷姩涓嬭浇骞跺湪杩欓噷棰勮銆</div>
+                                <pre id="ue5JsonPreview" class="result-content ue5-json-preview">{}</pre>
+                            </div>
+                        </div>
+                        <div class="card ue5-camera-editor-card">
+                            <div class="card-header">
+                                <h3>馃帴 闀滃ご鍙鍖栫紪杈</h3>
+                                <span id="ue5CameraEditorStatus" class="badge">寰呰浇鍏</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5CameraEditorEmpty" class="empty-state"><p>鐢熸垚鎴栧鍏?UE JSON 鍚庯紝鍙互鍦ㄨ繖閲屾寜 UE5 闀滃ご鍙傛暟缂栬緫骞跺鍏?3D 鎴浘妯″紡楠岃瘉銆</p></div>
+                                <div id="ue5CameraEditor" class="ue5-camera-editor hidden">
+                                    <div class="ue5-camera-toolbar">
+                                        <label>闀滃ご<select id="ue5ShotSelect" onchange="onUe5ShotSelectionChange()"></select></label>
+                                        <label>鍏抽敭甯?select id="ue5CameraKeySelect" onchange="syncUe5CameraEditorFromSelection()"></select></label>
+                                    </div>
+                                    <div class="ue5-camera-toolbar">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="addUe5CameraKeyframe()">鏂板鍏抽敭甯</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="deleteUe5CameraKeyframe()">鍒犻櫎鍏抽敭甯</button>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="importSelectedUe5ShotToReference3D()">瀵煎叆3D鎴浘楠岃瘉</button>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="applyUe5CameraEditorChanges()">搴旂敤鍒癑SON</button>
+                                    </div>
+                                    <div class="ue5-shot-meta-grid">
+                                        <label>闀滃ご鏃堕暱<input id="ue5ShotCamLength" type="number" step="0.1" min="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Talk ID<input id="ue5ShotTalkID" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>璇磋瘽寮€濮?input id="ue5ShotTalkStart" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>璇磋瘽缁撴潫<input id="ue5ShotTalkEnd" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                    </div>
+                                    <div class="ue5-camera-section-title">Camera Actor</div>
+                                    <div class="ue5-camera-param-grid">
+                                        <label>Key Seconds<input id="ue5CameraKeySeconds" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location X<input id="ue5CameraPosX" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location Y<input id="ue5CameraPosY" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location Z<input id="ue5CameraPosZ" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation X<input id="ue5CameraRotX" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation Y<input id="ue5CameraRotY" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation Z<input id="ue5CameraRotZ" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Field Of View<input id="ue5CameraFov" type="number" step="0.1" min="5" max="170" onchange="applyUe5CameraEditorChanges()"></label>
+                                    </div>
+                                    <div class="ue5-camera-section-title">Spike 瑙掕壊绔欎綅</div>
+                                    <div id="ue5SpikeEditor" class="ue5-spike-editor"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 瑙嗛缂栬緫椤?-->
+            <section id="tab-video-editor" class="tab-content">
+                <div class="page-header">
+                    <h1>瑙嗛缂栬緫</h1>
+                    <p class="page-desc">涓婁紶瑙嗛鎴栧鍏ュ綋鍓嶉」鐩嫾鎺ユ垚鐗囷紝瀵硅棰戝唴閮ㄦ寚瀹氭椂闂存杩涜浜屾鐢熸垚鏇挎崲</p>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="Input" data-output-title="Output">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('video-editor', false, { manual: true })">
+                        <strong data-workflow-rail-title>缂栬緫鍙傛暟</strong>
+                        <span data-workflow-rail-action>灞曞紑杈撳叆鍖</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>鏇挎崲璁剧疆</strong>
+                                <span>杞藉叆瑙嗛鍚庡彲鏀惰捣锛屽彸渚т繚鐣欓瑙堜笌纭缁撴灉銆</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('video-editor')">鏀惰捣杈撳叆</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃帪锔?缂栬緫婧愯棰</h3>
+                                <span class="badge">鐙珛鍔熻兘</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>涓婁紶寰呯紪杈戣棰</label>
+                                    <input type="file" id="videoEditorUpload" accept="video/*">
+                                </div>
+                                <div class="segment-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="uploadVideoEditorSource()">涓婁紶骞惰浇鍏</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="importMergedVideoToEditor()">瀵煎叆褰撳墠椤圭洰鎷兼帴鎴愮墖</button>
+                                </div>
+                                <div id="videoEditorSourceInfo" class="local-path">灏氭湭杞藉叆瑙嗛</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3>鉁傦笍 鏃堕棿娈垫浛鎹</h3></div>
+                            <div class="card-body">
+                                <div class="video-range-repair-grid">
+                                    <label>寮€濮嬬<input type="number" id="videoEditorStart" min="0" step="0.1" placeholder="渚嬪 4.0"></label>
+                                    <label>缁撴潫绉?input type="number" id="videoEditorEnd" min="0" step="0.1" placeholder="渚嬪 7.0"></label>
+                                </div>
+                                <div id="videoEditorPrompt" class="segment-editor mention-editor" data-rows="6" data-placeholder="鎻忚堪杩欐灏忕墖娈甸渶瑕佸浣曚慨鏀癸紝杈撳叆 @ 寮曠敤绱犳潗鎴栨彁绀鸿瘝搴擄紱鍙户缁弿杩帮細浜虹墿琛ㄦ儏鏇存儕璁躲€侀暅澶存洿杩戙€佸姩浣滄敼涓鸿浆韬悗閫€绛夈€"></div>
+                                <div class="mention-preview-row">
+                                    <button type="button" class="btn btn-sm btn-secondary mention-insert-btn" onclick="openMentionPickerForVideoEditor()">@ 鎻掑叆</button>
+                                    <span class="mention-preview-hint">鍦ㄦ弿杩伴噷鐩存帴鎵?@锛屽彲閫夋嫨绱犳潗鎴栨彁绀鸿瘝搴擄紱绱犳潗浼氫綔涓鸿繖娆¤棰戠紪杈戝弬鑰冨浘锛屾彁绀鸿瘝搴撲細浣滀负闄勫姞淇敼瑕佹眰</span>
+                                </div>
+                                <div class="form-group" style="margin-top:12px;">
+                                    <label>棰濆涓婁紶涓存椂鍙傝€冨浘锛堝彲閫夛級</label>
+                                    <input type="file" id="videoEditorReferenceFiles" accept="image/*" multiple onchange="onVideoEditorReferenceFilesChange()">
+                                    <div id="videoEditorReferenceFileCount" class="field-hint">0寮?路 涓存椂涓婁紶鐨勫弬鑰冨浘浼氬拰涓婇潰 @ 鍒扮殑绱犳潗涓€璧峰彂缁欒棰戞ā鍨</div>
+                                </div>
+                                <button class="btn btn-primary btn-lg" onclick="submitStandaloneVideoEdit()">鎻愪氦瑙嗛缂栬緫</button>
+                                <div id="videoEditorStatus" class="local-path"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('video-editor', false, { manual: true })">
+                        <strong data-workflow-output-title>瑙嗛棰勮</strong>
+                        <span data-workflow-output-action>绛夊緟杈撳嚭</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div class="card">
+                            <div class="card-header"><h3>馃憖 瑙嗛棰勮</h3></div>
+                            <div class="card-body">
+                                <div id="videoEditorPreview" class="video-editor-preview empty-state"><p>涓婁紶鎴栧鍏ヨ棰戝悗灏嗗湪杩欓噷棰勮</p></div>
+                                <div id="videoEditorUndoPanel" class="video-editor-undo-panel hidden"></div>
+                                <div id="videoEditorPendingResult" class="video-editor-confirm-panel hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 鍒嗛暅鐢熸垚椤?-->
+            <section id="tab-storyboard" class="tab-content">
+                <div class="page-header page-hero optional-page-hero">
+                    <div>
+                        <span class="eyebrow">鍙€夊寮</span>
+                        <h1>鍒嗛暅杈呭姪</h1>
+                        <p class="page-desc">闇€瑕佹洿绋冲畾鐨勭珯浣嶃€佺┖闂村叧绯诲拰鏋勫浘鏃讹紝鍐嶇嫭绔嬬敓鎴愬垎闀滄彁绀鸿瘝涓庡浘鐗囥€</p>
+                    </div>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="Input" data-output-title="Output">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('storyboard', false, { manual: true })">
+                        <strong data-workflow-rail-title>鍒嗛暅杈撳叆</strong>
+                        <span data-workflow-rail-action>灞曞紑杈撳叆鍖</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>鍒嗛暅杈撳叆涓庣礌鏉</strong>
+                                <span>鐢熸垚鍚庡彲鏀惰捣锛屽彸渚ф壒閲忕鐞嗗垎闀滆祫浜с€</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('storyboard')">鏀惰捣杈撳叆</button>
+                        </div>
+                        <div class="card storyboard-mode-card">
+                            <div class="card-header">
+                                <h3>馃摑 鍒嗛暅鍓ф湰杈撳叆</h3>
+                                <span class="badge">鍙€夎緟鍔</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="storyboardScriptInput" placeholder="鍦ㄦ绮樿创闇€瑕佺敓鎴愬垎闀滃浘鐨勫墽鏈垨瑙嗛鍙版湰銆傚缓璁寘鍚鑹层€佸満鏅€佸姩浣溿€佸鐧姐€侀亾鍏峰拰闀滃ご椤哄簭銆? rows="14"></textarea>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃幆 鍒嗛暅鍏宠仈绱犳潗</h3>
+                                <span class="badge">鍙€</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="select-group">
+                                    <label>閫夋嫨鍦烘櫙</label>
+                                    <div id="storyboardSceneSelect" class="chip-select"></div>
+                                </div>
+                                <div class="select-group">
+                                    <label>閫夋嫨浜虹墿</label>
+                                    <div id="storyboardCharSelect" class="chip-select"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card storyboard-mode-card">
+                            <div class="card-header">
+                                <h3>馃柤锔?鍒嗛暅鐢熸垚鍙傛暟</h3>
+                                <span class="badge">GPT Image 2</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>鍒嗛暅鍥剧敾骞呮瘮渚</label>
+                                    <select id="storyboardPageRatioSelect">
+                                        <option value="16:9">16:9 妯睆</option>
+                                        <option value="9:16">9:16 绔栧睆</option>
+                                        <option value="1:1">1:1 鏂瑰浘</option>
+                                        <option value="4:3">4:3</option>
+                                        <option value="3:4">3:4</option>
+                                        <option value="21:9">21:9 鐢靛奖瀹介摱骞</option>
+                                    </select>
+                                </div>
+                                <div class="storyboard-mode-tips">
+                                    <div>鈥?璇ラ〉闈㈠彧璐熻矗鐙珛鐢熸垚鍒嗛暅鎻愮ず璇嶅拰鍒嗛暅鍥剧墖锛屼笉鐩存帴鐢熸垚瑙嗛銆</div>
+                                    <div>鈥?鍒嗛暅鐢熸垚浣跨敤璁剧疆椤典腑鐨勭嫭绔?Key銆丅ase URL銆佹枃瀛楁ā鍨嬪拰鍥剧墖妯″瀷銆</div>
+                                    <div>鈥?涓荤嚎鍒剁墖娴佹按绾垮凡榛樿浣跨敤鍒嗛暅鍥鹃┍鍔紱杩欓噷浣滀负鐙珛鍒嗛暅璧勪骇鍜岄珮绾т慨琛ュ叆鍙ｄ繚鐣欍€</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="btnStoryboardProcess" class="btn btn-primary btn-lg" onclick="processStoryboardOnly()">
+                            <span class="btn-icon">馃柤锔</span> 鐢熸垚鍒嗛暅鎻愮ず璇?                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('storyboard', false, { manual: true })">
+                        <strong data-workflow-output-title>鍒嗛暅缁撴灉</strong>
+                        <span data-workflow-output-action>绛夊緟杈撳嚭</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div id="storyboardOnlyPlaceholderCard" class="card">
+                            <div class="card-header"><h3>馃柤锔?鍒嗛暅鐢熸垚缁撴灉</h3></div>
+                            <div class="card-body">
+                                <div class="result-placeholder">
+                                    <div class="placeholder-icon">馃柤锔</div>
+                                    <p>鍒嗛暅鎻愮ず璇嶅拰鍥剧墖灏嗗湪杩欓噷鏄剧ず</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="storyboardOnlyPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3>馃搵 鍒嗛暅璧勪骇鍒楄〃</h3>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <span id="storyboardOnlyCount" class="badge">0涓垎闀</span>
+                                    <button class="btn btn-sm btn-secondary" onclick="generateAllStoryboardPrompts()">鍏ㄩ儴鐢熸垚鏁呬簨鏉挎彁绀鸿瘝</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="generateAllStoryboardImages()">鍏ㄩ儴鐢熸垚鍥剧墖</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="storyboardOnlyList" class="segments-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 鍦烘櫙搴撻〉 -->
+            <section id="tab-scenes" class="tab-content">
+                <div class="page-header resource-page-header">
+                    <div class="resource-header-main">
+                        <h1>鍦烘櫙搴</h1>
+                        <p class="page-desc">绠＄悊鍙敤鐨勫満鏅礌鏉愶紝涓婁紶鍦烘櫙鍙傝€冨浘</p>
+                    </div>
+                    <div class="resource-header-actions">
+                        <button class="btn btn-primary" onclick="showSceneModal()">
+                            <span class="btn-icon">+</span> 娣诲姞鍦烘櫙
+                        </button>
+                    </div>
+                </div>
+                <div id="sceneGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 浜虹墿搴撻〉 -->
+            <section id="tab-characters" class="tab-content">
+                <div class="page-header resource-page-header">
+                    <div class="resource-header-main">
+                        <h1>浜虹墿搴</h1>
+                        <p class="page-desc">绠＄悊瑙掕壊璁惧畾锛屼笂浼犺鑹插弬鑰冨浘锛岄厤缃煶鑹叉弿杩</p>
+                    </div>
+                    <div class="resource-header-actions">
+                        <button class="btn btn-primary" onclick="showCharModal()">
+                            <span class="btn-icon">+</span> 娣诲姞浜虹墿
+                        </button>
+                    </div>
+                </div>
+                <div id="charGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 璧勪骇搴撻〉 -->
+            <section id="tab-assets" class="tab-content">
+                <div class="page-header page-hero">
+                    <div>
+                        <span class="eyebrow">璧勪骇娴忚</span>
+                        <h1>璧勪骇搴</h1>
+                        <p class="page-desc">缁熶竴鏌ョ湅瑙嗛銆佽鑹插浘銆佸満鏅浘銆佷复鏃跺弬鑰冨浘鍜屽垎闀滃浘銆</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadAssets()">
+                        <span class="btn-icon">鈫</span> 鍒锋柊璧勪骇
+                    </button>
+                </div>
+                <div class="browser-toolbar">
+                    <label class="search-field">
+                        <span>鎼滅储璧勪骇</span>
+                        <input id="assetSearchInput" type="text" placeholder="鍚嶇О銆佽矾寰勬垨绫诲瀷" oninput="setAssetQuery(this.value)">
+                    </label>
+                    <div class="segmented-control" aria-label="璧勪骇绫诲瀷">
+                        <button type="button" data-asset-filter="all" class="active" onclick="setAssetFilter('all')">鍏ㄩ儴</button>
+                        <button type="button" data-asset-filter="video" onclick="setAssetFilter('video')">瑙嗛</button>
+                        <button type="button" data-asset-filter="storyboard" onclick="setAssetFilter('storyboard')">鍒嗛暅</button>
+                        <button type="button" data-asset-filter="character" onclick="setAssetFilter('character')">浜虹墿</button>
+                        <button type="button" data-asset-filter="scene" onclick="setAssetFilter('scene')">鍦烘櫙</button>
+                    </div>
+                    <div class="segmented-control density-control" aria-label="鏄剧ず瀵嗗害">
+                        <button type="button" data-asset-density="comfortable" class="active" onclick="setAssetDensity('comfortable')">缃戞牸</button>
+                        <button type="button" data-asset-density="compact" onclick="setAssetDensity('compact')">绱у噾</button>
+                    </div>
+                    <span id="assetBrowserCount" class="badge">0椤</span>
+                </div>
+                <div id="assetGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 鎻愮ず璇嶅簱椤?-->
+            <section id="tab-prompt-library" class="tab-content">
+                <div class="page-header page-hero">
+                    <div>
+                        <span class="eyebrow">鍙鐢ㄦā鏉</span>
+                        <h1>鎻愮ず璇嶅簱</h1>
+                        <p class="page-desc">绠＄悊鍙湪鍓ф湰鍜岄澶栬姹備腑鐢?@鏍囬 寮曠敤鐨勯檮鍔犳彁绀鸿瘝銆</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="showPromptLibraryModal()">
+                        <span class="btn-icon">+</span> 鏂板缓鎻愮ず璇?                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>馃挰 鍙紩鐢ㄦ彁绀鸿瘝</h3>
+                            <small class="field-hint">鍦ㄢ€滆緭鍏ュ墽鏈€濇垨鈥滈澶栬姹傗€濋噷杈撳叆 @鏍囬锛屼緥濡?@绗竴浜虹О锛涙彁浜ょ粰 AI 鏃朵細鑷姩闄勫姞瀵瑰簲鍐呭鍜屽彲閫夊浘鐗囥€</small>
+                        </div>
+                        <span id="promptLibraryCount" class="badge">0鏉</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="browser-toolbar prompt-browser-toolbar">
+                            <label class="search-field">
+                                <span>鎼滅储鎻愮ず璇</span>
+                                <input id="promptLibrarySearchInput" type="text" placeholder="鏍囬鎴栧唴瀹? oninput="setPromptLibraryQuery(this.value)">
+                            </label>
+                            <div class="segmented-control density-control" aria-label="鏄剧ず瀵嗗害">
+                                <button type="button" data-prompt-density="comfortable" class="active" onclick="setPromptLibraryDensity('comfortable')">鍗＄墖</button>
+                                <button type="button" data-prompt-density="compact" onclick="setPromptLibraryDensity('compact')">鍒楄〃</button>
+                            </div>
+                        </div>
+                        <div id="promptLibraryGrid" class="prompt-library-grid"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 椤圭洰绠＄悊椤?-->
+            <section id="tab-projects" class="tab-content">
+                <div class="page-header">
+                    <h1>椤圭洰绠＄悊</h1>
+                    <p class="page-desc">鏌ョ湅鍘嗗彶椤圭洰鍜岃棰戠敓鎴愮姸鎬侊紝涔熷彲浠ュ厛鏂板缓绌洪」鐩啀寮€濮嬪啓鍓ф湰</p>
+                    <button class="btn btn-primary" onclick="showProjectModal()">
+                        <span class="btn-icon">+</span> 鏂板缓椤圭洰
+                    </button>
+                </div>
+                <div id="projectList" class="project-list"></div>
+            </section>
+
+            <!-- 3D鎴浘鍙傝€冮〉 -->
+            <section id="tab-reference-3d" class="tab-content">
+                <div class="page-header">
+                    <h1>3D鎴浘鍙傝€</h1>
+                    <p class="page-desc">瀵煎叆鍥剧墖骞抽潰銆?D妯″瀷鍜屽竷鏅洅璐村浘锛屽湪 3D 绌洪棿涓惌鍑哄亣鐨勫満鏅€忚鍚庡鍑虹粰 AI 浣跨敤鐨勫垎闀滃弬鑰冩埅鍥俱€</p>
+                </div>
+                <div class="reference-3d-layout">
+                    <div class="reference-3d-stage card">
+                        <div class="card-header reference-3d-toolbar">
+                            <div>
+                                <h3>馃 3D 鍦烘櫙</h3>
+                                <small class="field-hint">鍥哄畾鍦烘櫙鑷敱鎽勫奖鏈猴細甯冩櫙鐩掋€佺綉鏍煎拰鐗╀綋閮戒繚鎸佸湪涓栫晫鍧愭爣锛涘彸閿嫋鍔ㄨ浆鍚戯紝鍙抽敭鎸変綇鏃剁敤 W/A/S/D 绉诲姩鐩告満锛孮/E 涓嬮檷/涓婂崌锛屾粴杞部瑙嗙嚎鍓嶈繘/鍚庨€€锛孲hift 鍔犻€燂紱宸﹂敭鐐瑰嚮閫変腑瑙掕壊鎴栫墿浣撱€</small>
+                            </div>
+                            <div class="reference-3d-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="focusReference3DAll()">鏌ョ湅鍏ㄥ満</button>
+                                <button class="btn btn-sm btn-secondary" onclick="focusReference3DSelected()">鑱氱劍閫変腑</button>
+                                <button class="btn btn-sm btn-secondary" onclick="resetReference3DCamera()">閲嶇疆瑙嗚</button>
+                                <button class="btn btn-sm btn-primary" onclick="captureReference3DShot()">馃摳 瀵煎嚭鎴浘</button>
+                            </div>
+                        </div>
+                        <div class="reference-3d-canvas-wrap">
+                            <canvas id="reference3DCanvas"></canvas>
+                            <div id="reference3DHint" class="reference-3d-hint">鎵撳紑鏈〉鍚庝細鑷姩鍔犺浇 3D 寮曟搸</div>
+                        </div>
+                    </div>
+                    <aside class="reference-3d-panel">
+                        <div class="card">
+                            <div class="card-header"><h3>鉃?瀵煎叆绱犳潗</h3></div>
+                            <div class="card-body reference-3d-imports">
+                                <div class="reference-3d-toggle-row" style="margin-bottom:10px">
+                                    <button type="button" class="btn btn-sm btn-primary" data-reference3d-backdrop-mode="box" onclick="setReference3DBackdropMode('box')">鏂瑰舰甯冩櫙鐩</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-reference3d-backdrop-mode="curved" onclick="setReference3DBackdropMode('curved')">鍦嗗姬甯冩櫙</button>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="addReference3DPersonBox()">娣诲姞UE5鐏版ā灏忎汉</button>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DModelInput')">瀵煎叆 GLB/GLTF 妯″瀷</button>
+                                <input id="reference3DModelInput" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" multiple onchange="addReference3DModels(this.files); this.value=''">
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DBackgroundInput')">鍗曞紶鑳屾櫙鍥</button>
+                                <input id="reference3DBackgroundInput" type="file" accept="image/*" onchange="setReference3DSingleBackground(this.files?.[0]); this.value=''">
+                                <div class="reference-3d-skybox-slots">
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="0" onclick="triggerReference3DFileInput('reference3DSkyboxRight')"><img id="reference3DSkyboxPreview0" class="hidden" alt="鍙?+X 棰勮"><span>鍙?+X</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="1" onclick="triggerReference3DFileInput('reference3DSkyboxLeft')"><img id="reference3DSkyboxPreview1" class="hidden" alt="宸?-X 棰勮"><span>宸?-X</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="2" onclick="triggerReference3DFileInput('reference3DSkyboxTop')"><img id="reference3DSkyboxPreview2" class="hidden" alt="涓?+Y 棰勮"><span>涓?+Y</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="3" onclick="triggerReference3DFileInput('reference3DSkyboxBottom')"><img id="reference3DSkyboxPreview3" class="hidden" alt="涓?-Y 棰勮"><span>涓?-Y</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="4" onclick="triggerReference3DFileInput('reference3DSkyboxFront')"><img id="reference3DSkyboxPreview4" class="hidden" alt="鍓?+Z 棰勮"><span>鍓?+Z</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="5" onclick="triggerReference3DFileInput('reference3DSkyboxBack')"><img id="reference3DSkyboxPreview5" class="hidden" alt="鍚?-Z 棰勮"><span>鍚?-Z</span></button>
+                                </div>
+                                <input id="reference3DSkyboxRight" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(0, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxLeft" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(1, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxTop" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(2, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxBottom" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(3, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxFront" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(4, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxBack" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(5, this.files?.[0]); this.value=''">
+                                <small id="reference3DSkyboxStatus" class="field-hint">鍙湪鏂瑰舰甯冩櫙鐩掍笌鍦嗗姬甯冩櫙涔嬮棿鍒囨崲锛涜嚦灏戜笂浼犲墠/宸?鍙?涓?4 闈㈠嵆鍙惌鍑哄彲鎴浘鐨勫亣 3D 鍦烘櫙銆</small>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DGroundInput')">鍦伴潰璐村浘</button>
+                                <input id="reference3DGroundInput" type="file" accept="image/*" onchange="setReference3DGroundTexture(this.files?.[0]); this.value=''">
+                                <div class="reference-3d-toggle-row">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReference3DGround()">鏄剧ず/闅愯棌鍦伴潰</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReference3DGrid()">鏄剧ず/闅愯棌缃戞牸</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃摜 AI鎽勫奖鏁版嵁瀵煎叆</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="reference3DControlDataInput" rows="8" placeholder="绮樿创鍗曞垎闀滄ā寮忚緭鍑虹殑 ===CONTROL_DATA_START=== JSON 鍧楋紝鎴栫洿鎺ョ矘璐存帶鍒禞SON銆"></textarea>
+                                <button type="button" class="btn btn-primary btn-block" onclick="importReference3DControlDataFromTextarea()">瀵煎叆瑙掕壊涓庢憚鍍忔満瑙掑害</button>
+                                <small class="field-hint">瀵煎叆鍚庝細娓呯┖褰撳墠3D瑙掕壊/鐗╀綋锛屽苟鎸塉SON鐢熸垚瑙掕壊绔欎綅銆佽搴﹀拰鎽勫儚鏈鸿瑙掋€</small>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃帴 鎽勫奖鏈哄弬鏁</h3>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="resetReference3DCamera()">閲嶇疆</button>
+                            </div>
+                            <div class="card-body reference-3d-controls">
+                                <div class="reference-3d-vector-grid">
+                                    <label>Loc X<input id="reference3DCamPosX" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Loc Y<input id="reference3DCamPosY" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Loc Z<input id="reference3DCamPosZ" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot X<input id="reference3DCamRotX" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot Y<input id="reference3DCamRotY" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot Z<input id="reference3DCamRotZ" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>FOV<input id="reference3DCamFov" type="number" step="0.1" min="5" max="170" onchange="applyReference3DCameraInputs()"></label>
+                                </div>
+                                <div class="reference-3d-toggle-row" style="margin-top:10px">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="syncReference3DCameraInputs()">璇诲彇褰撳墠瑙嗚</button>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="writeReference3DCameraToUe5Json()">鍥炲啓UE JSON</button>
+                                </div>
+                                <small id="reference3DCameraStatus" class="field-hint">浠庡鍏ュ紩鎿庨暅澶磋繘鍏ユ椂锛屽彲鍦ㄨ繖閲屽井璋冭瑙掑苟鍥炲啓鍒板綋鍓嶅叧閿抚銆</small>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃幆 閫変腑鐗╀綋</h3>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                    <button class="btn btn-sm btn-secondary" onclick="groundReference3DSelected()">璐村湴</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="deleteReference3DSelected()">鍒犻櫎</button>
+                                </div>
+                            </div>
+                            <div class="card-body reference-3d-controls">
+                                <div class="form-group">
+                                    <label>鍚嶇О</label>
+                                    <input id="reference3DName" type="text" placeholder="鏈€変腑鐗╀綋" onchange="renameReference3DSelected(this.value)">
+                                </div>
+                                <div class="reference-3d-vector-grid">
+                                    <label>X<input id="reference3DPosX" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>Y<input id="reference3DPosY" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>Z<input id="reference3DPosZ" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>鏃媂<input id="reference3DRotX" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>鏃媃<input id="reference3DRotY" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>鏃媄<input id="reference3DRotZ" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缂<input id="reference3DScaleX" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缂℡<input id="reference3DScaleY" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缂㈱<input id="reference3DScaleZ" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>馃摝 鍦烘櫙鐗╀綋</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="clearReference3DScene()">娓呯┖</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="reference3DObjectList" class="reference-3d-object-list">
+                                    <div class="empty-state"><p>鏆傛棤鐗╀綋锛岃鍏堝鍏ュ浘鐗囨垨妯″瀷銆</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- 妯″紡绠＄悊椤?-->
+            <section id="tab-director-modes" class="tab-content">
+                <div class="page-header">
+                    <h1>妯″紡绠＄悊</h1>
+                    <p class="page-desc">缁熶竴绠＄悊鐢熸垚 Video Prompt 鍜岃棰戞椂浣跨敤鐨勭紪瀵?妯″紡鎻愮ず璇嶃€</p>
+                </div>
+                <div class="mode-management-layout">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>馃幀 瑙嗛妯″紡</h3>
+                                <small class="field-hint">绠＄悊鐢熸垚 Video Prompt 鍜岃棰戞椂浣跨敤鐨勭紪瀵兼彁绀鸿瘝锛屼緥濡?dialogue銆乧utscene銆佺煭鍓с€佸箍鍛婄墖銆傛湭杈撳叆瀵嗙爜鏃朵粎鑴辨晱鏌ョ湅/缂栬緫锛屼笉褰卞搷鍒剁墖娴佹按绾挎甯搁€夋嫨浣跨敤銆</small>
+                            </div>
+                            <button class="btn btn-secondary" onclick="unlockDirectorModes()">
+                                <span class="btn-icon">馃攼</span> 杈撳叆瀵嗙爜鏌ョ湅/缂栬緫
+                            </button>
+                            <button class="btn btn-primary" onclick="showDirectorModeModal()">
+                                <span class="btn-icon">+</span> 鏂板缓瑙嗛妯″紡
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="directorModeGrid" class="director-mode-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 璁剧疆椤?-->
+            <section id="tab-settings" class="tab-content">
+                <div class="page-header">
+                    <h1>璁剧疆</h1>
+                    <p class="page-desc">閰嶇疆API瀵嗛挜鍜屾湇鍔″弬鏁</p>
+                </div>
+                <div class="settings-form">
+                    <div class="card">
+                        <div class="card-header"><h3>馃 OpenAI 閰嶇疆</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>API Key</label>
+                                <input type="password" id="settingOpenaiKey" placeholder="sk-...">
+                            </div>
+                            <div class="form-group">
+                                <label>Base URL</label>
+                                <input type="text" id="settingOpenaiBase" placeholder="https://gateway.ai.levelinfinite.com">
+                            </div>
+                            <div class="form-group">
+                                <label>妯″瀷</label>
+                                <input type="text" id="settingOpenaiModel" placeholder="gpt-5.5">
+                            </div>
+                            <div class="form-group">
+                                <label>鎺ㄧ悊寮哄害</label>
+                                <select id="settingOpenaiReasoningEffort">
+                                    <option value="xhigh">鏋侀珮 xhigh</option>
+                                    <option value="high">楂樼骇 high</option>
+                                    <option value="medium">涓骇 medium</option>
+                                    <option value="low">浣庣骇 low</option>
+                                    <option value="minimal">鏋佷綆 minimal</option>
+                                    <option value="none">鍏抽棴 none</option>
+                                    <option value="default">榛樿 default</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card hidden">
+                        <div class="card-header"><h3>馃З 鍓ф湰澶勭悊鎻愮ず璇</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>鍓ф湰鎷嗚В绯荤粺鎻愮ず璇</label>
+                                <textarea id="settingScriptBreakdownPrompt" rows="16" placeholder="杈撳叆鐢ㄤ簬 /api/breakdown-script 鐨勫墽鏈媶瑙ｇ郴缁熸彁绀鸿瘝"></textarea>
+                                <small class="field-hint">璇ユ彁绀鸿瘝浼氬啓鍏?SCRIPT_BREAKDOWN_PROMPT锛岀敤浜庘€滃墽鏈媶瑙ｂ€濇楠ゃ€傚缓璁槑纭寜鍦烘櫙/鏃剁┖鎷嗘銆佷繚鐣欏鐧姐€佽緭鍑虹┖闂村叧绯汇€侀甯ч敋瀹氫緷鎹€佸熬甯ц鎺ヤ緷鎹拰杩炵画鎬у娉ㄣ€</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card hidden">
+                        <div class="card-header"><h3>馃柤锔?鍒嗛暅澶勭悊鎻愮ず璇</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>鏁呬簨鏉?鍒嗛暅鍥炬彁绀鸿瘝浜鸿</label>
+                                <textarea id="settingStoryboardSystemPrompt" rows="16" placeholder="杈撳叆鐢ㄤ簬鐢熸垚鏁呬簨鏉垮浘鎻愮ず璇嶇殑绯荤粺浜鸿"></textarea>
+                                <small class="field-hint">褰撳墠鏁呬簨鏉挎彁绀鸿瘝浜鸿宸叉敼涓虹▼搴忓唴缃紝姝ゅ浠呬繚鐣欏巻鍙茶缃樉绀猴紝涓嶅啀褰卞搷鈥滀竴閿敓鎴愭晠浜嬫澘鎻愮ず璇嶁€濄€</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>馃柤锔?鍒嗛暅鐢熸垚閰嶇疆</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>鍒嗛暅鐢熸垚 API Key</label>
+                                <input type="password" id="settingStoryboardOpenaiKey" placeholder="鍒嗛暅鐢熸垚涓撶敤 API Key锛岀暀绌哄垯涓嶄慨鏀">
+                            </div>
+                            <div class="form-group">
+                                <label>鍒嗛暅鐢熸垚 Base URL</label>
+                                <input type="text" id="settingStoryboardOpenaiBase" placeholder="https://gateway.ai.levelinfinite.com">
+                            </div>
+                            <div class="form-group">
+                                <label>鍥剧墖澶勭悊妯″瀷</label>
+                                <input type="text" id="settingStoryboardGptImageModel" placeholder="gpt-image-2" value="gpt-image-2">
+                                <small class="field-hint">浠呯敤浜庡垎闀滅敓鎴愰〉鐢熸垚闈欐€佸垎闀滆祫浜у浘锛涙枃瀛楀鐞嗙粺涓€浣跨敤涓婃柟 OpenAI 閰嶇疆涓殑妯″瀷銆</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>馃幀 Seedance 瑙嗛鐢熸垚閰嶇疆</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>鐢熸垚鎺ュ彛妯″紡</label>
+                                <select id="settingJimengProvider" onchange="handleJimengProviderChange()">
+                                    <option value="platform">骞冲彴鍏煎锛堜繚鐣欑幇鏈夋ā寮忥級</option>
+                                    <option value="volcengine">鐏北寮曟搸鏂硅垷鐩磋揪</option>
+                                </select>
+                                <small class="field-hint">骞冲彴鍏煎浼氱户缁娇鐢ㄤ笅鏂?JIMENG_* 閰嶇疆锛涚伀灞卞紩鎿庣洿杈句細鎸夊畼鏂?Ark SDK 绀轰緥璋冪敤 content_generation.tasks.create銆</small>
+                            </div>
+                            <div id="settingJimengPlatformFields">
+                                <div class="form-group">
+                                    <label>骞冲彴鍏煎 API Key</label>
+                                    <input type="password" id="settingJimengKey" placeholder="骞冲彴鍏煎 API Key">
+                                </div>
+                                <div class="form-group">
+                                    <label>骞冲彴鍏煎 Base URL</label>
+                                    <input type="text" id="settingJimengBase" placeholder="https://ark.cn-beijing.volces.com/api/v3" value="https://ark.cn-beijing.volces.com/api/v3">
+                                    <small class="field-hint">浠呯敤浜庘€滃钩鍙板吋瀹光€濇ā寮忥紝鐜版湁閫昏緫瀹屽叏淇濈暀锛涘浣跨敤浠ｇ悊鎴栧吋瀹规湇鍔★紝鍙湪杩欓噷淇敼銆</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>骞冲彴鍏煎妯″瀷</label>
+                                    <input type="text" id="settingJimengModel" placeholder="volcengine/doubao-seedance-2-0-260128" value="volcengine/doubao-seedance-2-0-260128">
+                                    <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block">鍙€? volcengine/doubao-seedance-2-0-260128 / doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128 / doubao-seedance-1-0-pro-250528</small>
+                                </div>
+                            </div>
+                            <div id="settingJimengVolcengineFields">
+                                <div class="form-group">
+                                    <label>鐏北寮曟搸鐩磋揪 API Key</label>
+                                    <input type="password" id="settingArkKey" placeholder="ARK_API_KEY锛涚暀绌哄垯澶嶇敤骞冲彴鍏煎 API Key">
+                                </div>
+                                <div class="form-group">
+                                    <label>鐏北寮曟搸鐩磋揪 Base URL</label>
+                                    <input type="text" id="settingArkBase" placeholder="鐣欑┖浣跨敤 Ark SDK 榛樿鍦板潃">
+                                    <small class="field-hint">閫氬父鐣欑┖鍗冲彲锛涘彧鏈夐渶瑕佷唬鐞嗘垨绉佹湁缃戝叧鏃跺啀濉啓銆</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>鐏北寮曟搸鐩磋揪妯″瀷</label>
+                                    <input type="text" id="settingArkSeedanceModel" placeholder="doubao-seedance-2-0-260128" value="doubao-seedance-2-0-260128">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>馃帹 鐣岄潰鑳屾櫙</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>鑳屾櫙鍥剧墖</label>
+                                <div class="ui-background-setting">
+                                    <label class="ui-background-upload btn btn-secondary">
+                                        <span class="btn-icon">馃柤锔</span> 閫夋嫨鍥剧墖
+                                        <input type="file" id="settingUiBackgroundImage" accept="image/*" onchange="setUIBackgroundImage(this)">
+                                    </label>
+                                    <button id="btnRemoveUiBackground" type="button" class="btn btn-danger" onclick="removeUIBackgroundImage()">绉婚櫎鑳屾櫙</button>
+                                </div>
+                                <small class="field-hint">鍥剧墖浼氫繚瀛樺湪褰撳墠娴忚鍣ㄦ湰鍦帮紝骞惰嚜鍔ㄨ繘琛屽姞鏆椼€佹ā绯婂拰閬僵澶勭悊锛岄伩鍏嶉檷浣庢枃瀛椾笌鎸夐挳鍙搴︺€</small>
+                                <img id="settingUiBackgroundPreview" class="ui-background-preview hidden" alt="褰撳墠鑳屾櫙棰勮">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>馃摝 鏁版嵁杩佺Щ</h3></div>
+                        <div class="card-body">
+                            <p class="field-hint">瀵煎嚭鎴栧鍏ユ暟鎹簱銆丄PI 璁剧疆鍜?uploads 鐩綍涓殑绱犳潗/瑙嗛锛岀敤浜庢洿鏂扮増鏈椂淇濈暀鍘熸湁椤圭洰鏁版嵁銆</p>
+                            <input type="file" id="dataImportFile" accept=".zip,application/zip" class="hidden" onchange="importProjectData(this)">
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+                                <button type="button" class="btn btn-secondary" onclick="exportProjectData()">
+                                    <span class="btn-icon">猬囷笍</span> 瀵煎嚭鍏ㄩ儴鏁版嵁
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('dataImportFile').click()">
+                                    <span class="btn-icon">猬嗭笍</span> 瀵煎叆鏁版嵁澶囦唤
+                                </button>
+                            </div>
+                            <div class="local-path">鏃х増鏈彲杩愯椤圭洰鏍圭洰褰曚腑鐨勨€滃鍑烘棫鐗堟湰鏁版嵁.py鈥濓紝鐢熸垚 zip 鍚庡湪杩欓噷瀵煎叆銆</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>馃帪锔?FFmpeg 瑙嗛鎷兼帴渚濊禆</h3>
+                            <span id="ffmpegStatus" class="badge">妫€娴嬩腑...</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="field-hint">涓€閿嫾鎺ラ渶瑕?FFmpeg銆傚彲浣跨敤绯荤粺宸插畨瑁呯殑 FFmpeg锛屼篃鍙偣鍑讳笅鏂规寜閽畨瑁?Python 鍐呯疆渚濊禆 imageio-ffmpeg銆</p>
+                            <div id="ffmpegPath" class="local-path">褰撳墠璺緞锛氭娴嬩腑...</div>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+                                <button class="btn btn-secondary" onclick="checkFFmpegStatus()">
+                                    <span class="btn-icon">馃攳</span> 妫€娴?FFmpeg
+                                </button>
+                                <button class="btn btn-primary" onclick="installFFmpegDependency()">
+                                    <span class="btn-icon">猬囷笍</span> 瀹夎 FFmpeg 渚濊禆
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap">
+                        <button class="btn btn-primary btn-lg" onclick="saveSettings()" style="flex:1">
+                            <span class="btn-icon">馃捑</span> 淇濆瓨璁剧疆
+                        </button>
+                        <button class="btn btn-success btn-lg" onclick="testOpenAI()" style="flex:1">
+                            <span class="btn-icon">馃攲</span> 娴嬭瘯AI杩炴帴
+                        </button>
+                    </div>
+                    <div id="testResult" class="card hidden" style="margin-top:16px">
+                        <div class="card-header"><h3>馃И 娴嬭瘯缁撴灉</h3></div>
+                        <div class="card-body">
+                            <pre id="testResultContent" style="white-space:pre-wrap;font-size:13px;line-height:1.6"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 鍦烘櫙娣诲姞寮圭獥 -->
+    <div id="sceneModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('sceneModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="sceneModalTitle">娣诲姞鍦烘櫙</h3>
+                <button class="modal-close" onclick="closeModal('sceneModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="sceneEditId">
+                <div class="form-group">
+                    <label>鍦烘櫙鍚嶇О *</label>
+                    <input type="text" id="sceneName" placeholder="渚嬪锛氬畻闂ㄥぇ娈">
+                </div>
+                <div class="form-group">
+                    <label>鍦烘櫙鎻忚堪</label>
+                    <textarea id="sceneDesc" rows="3" placeholder="鎻忚堪鍦烘櫙鐨勭幆澧冦€佹皼鍥寸瓑"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>鍦烘櫙鍙傝€冨浘</label>
+                    <div class="upload-area" id="sceneUpload">
+                        <input type="file" id="sceneImage" accept="image/*" onchange="previewImage(this, 'scenePreview')">
+                        <div class="upload-placeholder" id="sceneUploadPlaceholder">
+                            <span>馃摲</span>
+                            <p>鐐瑰嚮鎴栨嫋鎷戒笂浼犲浘鐗</p>
+                        </div>
+                        <img id="scenePreview" class="upload-preview hidden" alt="棰勮">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('sceneModal')">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="saveScene()">淇濆瓨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浜虹墿娣诲姞寮圭獥 -->
+    <div id="charModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('charModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="charModalTitle">娣诲姞浜虹墿</h3>
+                <button class="modal-close" onclick="closeModal('charModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="charEditId">
+                <div class="form-group">
+                    <label>浜虹墿鍚嶇О *</label>
+                    <input type="text" id="charName" placeholder="渚嬪锛氭椂杩">
+                </div>
+                <div class="form-group">
+                    <label>浜虹墿鎻忚堪</label>
+                    <textarea id="charDesc" rows="3" placeholder="鎻忚堪瑙掕壊鐨勫璨屻€佹€ф牸绛"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>闊宠壊鎻忚堪</label>
+                    <textarea id="charVoice" rows="2" placeholder="鎻忚堪瑙掕壊鐨勫０闊崇壒寰"></textarea>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-secondary btn-sm" id="generateCharVoiceBtn" onclick="generateCharVoice()">鉁?涓€閿敓鎴愬０绾</button>
+                        <span class="field-hint">浼氫娇鐢ㄥ綋鍓嶄汉鐗╂弿杩板拰瑙掕壊鍙傝€冨浘锛屽鐢ㄨ缃〉 OpenAI 妯″瀷閰嶇疆銆</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateCharTurnaround(document.getElementById('charEditId').value)">馃帹 涓€閿敓鎴愪汉璁句笁瑙嗗浘</button>
+                        <span class="field-hint">淇濆瓨浜虹墿鍚庡彲浣跨敤锛屼細灏嗕汉鐗╂弿杩版彁浜ょ粰AI鐢熷浘骞惰涓鸿鑹插弬鑰冨浘銆</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>瑙掕壊鍙傝€冨浘</label>
+                    <div class="upload-area" id="charUpload">
+                        <input type="file" id="charImage" accept="image/*" onchange="previewImage(this, 'charPreview')">
+                        <div class="upload-placeholder" id="charUploadPlaceholder">
+                            <span>馃摲</span>
+                            <p>鐐瑰嚮鎴栨嫋鎷戒笂浼犲浘鐗</p>
+                        </div>
+                        <img id="charPreview" class="upload-preview hidden" alt="棰勮">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('charModal')">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="saveCharacter()">淇濆瓨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 椤圭洰鍒涘缓寮圭獥 -->
+    <div id="projectModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('projectModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>鏂板缓椤圭洰</h3>
+                <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>椤圭洰鍚嶇О *</label>
+                    <input type="text" id="projectName" placeholder="渚嬪锛氱1闆嗗紑鍦虹煭鐗">
+                </div>
+                <div class="form-group">
+                    <label>鍒濆鍓ф湰</label>
+                    <textarea id="projectScript" rows="8" placeholder="鍙€夛細鍏堢矘璐撮」鐩墽鏈紝鍒涘缓鍚庝細鑷姩甯﹀叆瑙嗛鐢熸垚椤"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('projectModal')">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="createProject()">鍒涘缓</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 瑙嗛妯″紡寮圭獥 -->
+    <div id="directorModeModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('directorModeModal')"></div>
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3 id="directorModeModalTitle">鏂板缓瑙嗛妯″紡</h3>
+                <button class="modal-close" onclick="closeModal('directorModeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="directorModeEditId">
+                <div class="form-group">
+                    <label>妯″紡鍚嶇О *</label>
+                    <input type="text" id="directorModeName" placeholder="渚嬪锛歞ialogue缂栧">
+                </div>
+                <div class="form-group">
+                    <label>妯″紡鏍囪瘑</label>
+                    <input type="text" id="directorModeKey" placeholder="渚嬪锛歞ialogue / cutscene / custom">
+                </div>
+                <div class="form-group">
+                    <label>瑙嗛妯″紡鎻愮ず璇?*</label>
+                    <textarea id="directorModePrompt" rows="18" placeholder="杈撳叆杩欎釜瑙嗛妯″紡鐨勫畬鏁寸郴缁熸彁绀鸿瘝"></textarea>
+                </div>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="directorModeDefault">
+                    <span>璁句负榛樿妯″紡</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('directorModeModal')">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="saveDirectorMode()">淇濆瓨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鎻愮ず璇嶅簱寮圭獥 -->
+    <div id="promptLibraryModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('promptLibraryModal')"></div>
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3 id="promptLibraryModalTitle">鏂板缓鎻愮ず璇</h3>
+                <button class="modal-close" onclick="closeModal('promptLibraryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="promptLibraryEditId">
+                <label class="checkbox-row prompt-clear-image-row hidden" id="promptLibraryClearImageRow">
+                    <input type="checkbox" id="promptLibraryClearImage">
+                    <span>绉婚櫎鐜版湁鍥剧墖</span>
+                </label>
+                <div class="form-group">
+                    <label>鏍囬 *</label>
+                    <input type="text" id="promptLibraryTitle" placeholder="渚嬪锛氱涓€浜虹О">
+                    <small class="field-hint">鏍囬灏辨槸 @ 寮曠敤鍚嶏紝璇峰敖閲忕煭鑰屾槑纭€</small>
+                </div>
+                <div class="form-group">
+                    <label>鍐呭 *</label>
+                    <textarea id="promptLibraryContent" rows="12" placeholder="杈撳叆浼氶殢 @鏍囬 涓€璧蜂笂浼犵粰 AI 鐨勯暅澶存寚瀵笺€侀鏍艰姹傛垨澶勭悊瑙勫垯"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>鍥剧墖锛堝彲閫夛級</label>
+                    <div class="upload-area" id="promptLibraryUpload">
+                        <input type="file" id="promptLibraryImage" accept="image/*" onchange="previewImage(this, 'promptLibraryPreview')">
+                        <div class="upload-placeholder" id="promptLibraryUploadPlaceholder">
+                            <span>馃摲</span>
+                            <p>鐐瑰嚮鎴栨嫋鎷戒笂浼犳彁绀鸿瘝鍙傝€冨浘</p>
+                        </div>
+                        <img id="promptLibraryPreview" class="upload-preview hidden" alt="棰勮">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('promptLibraryModal')">鍙栨秷</button>
+                <button class="btn btn-primary" onclick="savePromptLibraryItem()">淇濆瓨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鐗堟湰鍏憡寮圭獥 -->
+    <div id="versionAnnouncementModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('versionAnnouncementModal')"></div>
+        <div class="modal-content version-modal-content">
+            <div class="modal-header">
+                <h3 id="versionAnnouncementTitle">鐗堟湰鏇存柊鍏憡</h3>
+                <button class="modal-close" onclick="closeModal('versionAnnouncementModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="versionAnnouncementContent" class="version-announcement-content">姝ｅ湪鍔犺浇鍏憡...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('versionAnnouncementModal')">鎴戠煡閬撲簡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading閬僵 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-panel">
+            <div class="spinner"></div>
+            <p id="loadingText">AI姝ｅ湪澶勭悊涓?..</p>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-info">
+                <span id="progressPercent">0%</span>
+                <span id="progressTime">宸茬敤鏃?0绉</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast鎻愮ず -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+    }
+    </script>
+    <script>
+        document.write('<script src="' + (location.protocol === 'file:' ? './app.js' : '/static/app.js') + '?v=20260624-uncut-02-01"><\/script>');
+    </script>
+</body>
+</html>

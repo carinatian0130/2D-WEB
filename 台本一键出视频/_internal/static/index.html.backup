@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台本一键出视频 - 制片流水线</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260623-flow129">
+</head>
+<body>
+    <div class="app">
+        <!-- 侧边导航 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">AI</span>
+                <span class="logo-text">台本出视频</span>
+            </div>
+            <div class="sidebar-status">
+                <span>主线</span>
+                <strong>台本 → Image → 分镜 → 视频</strong>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-section-label">工作台</li>
+                <li class="nav-item nav-primary" data-tab="workbench">
+                    <span class="nav-icon nav-icon-workbench" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>项目工作台</strong><small>总览</small></span>
+                </li>
+                <li class="nav-section-label">生成</li>
+                <li class="nav-item active nav-primary" data-tab="script">
+                    <span class="nav-icon nav-icon-video" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>制片流水线</strong><small>主线</small></span>
+                </li>
+                <li class="nav-section-label">工具</li>
+                <li class="nav-item" data-tab="reference-3d">
+                    <span class="nav-icon nav-icon-3d" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>3D参考</strong><small>构图辅助</small></span>
+                </li>
+                <li class="nav-section-label">资产</li>
+                <li class="nav-item" data-tab="scenes">
+                    <span class="nav-icon nav-icon-scenes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>场景库</strong><small>素材</small></span>
+                </li>
+                <li class="nav-item" data-tab="characters">
+                    <span class="nav-icon nav-icon-characters" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>人物库</strong><small>角色</small></span>
+                </li>
+                <li class="nav-item" data-tab="assets">
+                    <span class="nav-icon nav-icon-assets" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>资产库</strong><small>浏览</small></span>
+                </li>
+                <li class="nav-item" data-tab="prompt-library">
+                    <span class="nav-icon nav-icon-prompt" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>提示词库</strong><small>复用</small></span>
+                </li>
+                <li class="nav-section-label">系统</li>
+                <li class="nav-item" data-tab="projects">
+                    <span class="nav-icon nav-icon-projects" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>项目管理</strong><small>归档</small></span>
+                </li>
+                <li class="nav-item" data-tab="director-modes">
+                    <span class="nav-icon nav-icon-modes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>视频模式</strong><small>模板</small></span>
+                </li>
+                <li class="nav-item" data-tab="settings">
+                    <span class="nav-icon nav-icon-settings" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>设置</strong><small>连接</small></span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+
+            <div class="top-project-bar">
+                <div class="top-project-info">
+                    <span class="top-project-label">当前项目</span>
+                    <strong id="currentProjectName">加载中...</strong>
+                    <span id="currentProjectMeta">正在加载最新项目</span>
+                </div>
+                <div class="top-project-actions">
+                    <button id="btnOpenCurrentProject" class="btn btn-sm btn-secondary" onclick="openCurrentProjectFromBar()">打开项目</button>
+                    <button class="btn btn-sm btn-primary" onclick="showTopProjectModal()"><span class="btn-icon">+</span> 新建项目</button>
+                </div>
+            </div>
+
+            <!-- 项目工作台 -->
+            <section id="tab-workbench" class="tab-content">
+                <div class="workbench-shell">
+                    <div class="workbench-hero">
+                        <div class="workbench-hero-copy">
+                            <span class="eyebrow">项目总控</span>
+                            <h1>台本到分镜，再到视频</h1>
+                            <p class="page-desc">主线先把台本自动分段成 Image Prompt，确认后再手动生成分镜图、Video Prompt 和视频；3D 参考与素材库作为辅助保留。</p>
+                        </div>
+                        <div class="workbench-hero-rail">
+                            <div id="workbenchNextAction" class="workbench-next-action"></div>
+                            <div class="workbench-optional-note">
+                                <span>可选增强</span>
+                                <button type="button" onclick="switchToTab('script-breakdown')">剧本预处理</button>
+                                <button type="button" onclick="switchToTab('storyboard')">分镜辅助</button>
+                                <button type="button" onclick="switchToTab('reference-3d')">3D参考</button>
+                                <button type="button" onclick="switchToTab('ue5-json')">引擎导出</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="workbenchKpiGrid" class="workbench-kpi-grid"></div>
+
+                    <div class="workbench-layout">
+                        <div class="workbench-main-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>制片流水线</h3>
+                                        <p>按 Image Prompt、分镜图、Video Prompt、视频的顺序推进，状态会从项目和片段里自动读取。</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">打开制片流水线</button>
+                                </div>
+                                <div id="workbenchFlowSteps" class="workbench-flow-steps"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>片段时间线</h3>
+                                        <p>查看分镜、视频和生成状态，快速跳转到当前片段编辑。</p>
+                                    </div>
+                                    <div class="workbench-panel-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">编辑片段</button>
+                                        <button class="btn btn-sm btn-primary" onclick="generateAllVideos()">全部生成</button>
+                                    </div>
+                                </div>
+                                <div id="workbenchSegmentList" class="workbench-segment-list"></div>
+                            </div>
+                        </div>
+
+                        <aside class="workbench-side-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>任务中心</h3>
+                                        <p>长任务不会阻塞你继续检查项目。</p>
+                                    </div>
+                                </div>
+                                <div id="workbenchTaskCenter" class="workbench-task-center"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>快捷入口</h3>
+                                        <p>围绕当前项目继续处理。</p>
+                                    </div>
+                                </div>
+                                <div class="workbench-shortcuts">
+                                    <button class="btn btn-secondary" onclick="switchToTab('script-breakdown')">剧本预处理</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('storyboard')">分镜辅助</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('scenes')">场景库</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('characters')">人物库</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('video-editor')">视频编辑</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('ue5-json')">引擎导出</button>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 制片流水线页 -->
+            <section id="tab-script" class="tab-content active">
+                <div class="production-flow-top">
+                    <div class="production-flow-titlebar">
+                        <h1>制片流水线</h1>
+                        <button type="button" class="btn btn-primary production-title-action" onclick="processScript()">开始制片</button>
+                    </div>
+                    <div class="production-top-banner" id="productionTopBanner">
+                        <button type="button" class="production-top-step active" data-flow-step="script" onclick="focusProductionFlowStep('script')">
+                            <span class="top-step-no">01</span>
+                            <span class="top-step-copy">
+                                <strong>台本</strong>
+                                <small id="flowStepScriptMeta">等待台本</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="video" onclick="focusProductionFlowStep('video')">
+                            <span class="top-step-no">02</span>
+                            <span class="top-step-copy">
+                                <strong>分镜 / 视频</strong>
+                                <small id="flowStepVideoMeta">等待 Video Prompt</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="edit" onclick="focusProductionFlowStep('edit')">
+                            <span class="top-step-no">03</span>
+                            <span class="top-step-copy">
+                                <strong>编辑</strong>
+                                <small id="flowStepEditMeta">等待视频</small>
+                            </span>
+                        </button>
+                    </div>
+                    <div class="pipeline-tool-strip" aria-label="流水线辅助工具">
+                        <span class="pipeline-tool-strip-label">流水线辅助工具</span>
+                        <div class="pipeline-extra-actions">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="switchToTab('script-breakdown')">剧本预处理</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="switchToTab('storyboard')">分镜辅助</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="focusProductionFlowStep('edit')">03 视频编辑</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="switchToTab('ue5-json')">引擎导出</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="输入台本" data-output-title="片段流水线">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-rail-title>输入台本</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>01 台本</strong>
+                                <span>粘贴台本，锁定人物和场景。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script')">收起输入</button>
+                        </div>
+
+                        <!-- AI 生成剧本（可选前置） -->
+                        <details id="aiNarrativeCard" class="card collapsible-card">
+                            <summary class="card-header collapsible-summary">
+                                <div class="advanced-settings-heading">
+                                    <h3>🤖 AI 生成剧本（可选）</h3>
+                                    <div class="advanced-settings-summary">
+                                        <span id="aiNarrativeSummary">从台本表格自动生成叙事剧本</span>
+                                    </div>
+                                </div>
+                                <div class="collapsible-actions">
+                                    <span class="badge">台本→剧本</span>
+                                </div>
+                            </summary>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>原始台本表格</label>
+                                    <textarea id="aiNarrativeInput" rows="8" placeholder="在此粘贴原始台本表格（三列：台词 | 语境动作 | 角色）
+
+格式：每行用 | 分隔三列
+
+例：
+大家准备好了吗？ | 时运环顾四周，手按在武器上 | 时运
+师兄，我们都准备好了。 | 雅琳点头，握紧剑柄 | 雅琳"></textarea>
+                                    <small class="field-hint">AI 会用 6 步法将表格转化为连续叙事剧本：合并三列、补物理细节、串行动线、补感官层、逻辑一致性、节奏控制。</small>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <button id="btnAiNarrative" class="btn btn-primary" onclick="refineScriptToNarrative()">
+                                        <span class="btn-icon">✨</span> 生成叙事剧本
+                                    </button>
+                                    <button id="btnAiNarrativeFill" class="btn btn-sm btn-success hidden" onclick="fillNarrativeToScriptInput()">
+                                        填入下方台本区
+                                    </button>
+                                </div>
+                                <textarea id="aiNarrativeResult" class="breakdown-result-editor hidden" rows="10" placeholder="AI 生成的叙事剧本将在这里显示..." style="margin-top:12px"></textarea>
+                            </div>
+                        </details>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>输入台本</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="scriptInput" placeholder="在此粘贴完整原始台本，不需要提前拆段。系统会按情绪节奏和预计时长自动分成15秒以内段落，并直接生成每段 Image Prompt。&#10;&#10;例如：&#10;时运：大家准备好了吗？这次任务不简单。&#10;雅玲：师兄，我们都准备好了。&#10;小星：嘿嘿，交给我吧！" rows="16"></textarea>
+                                <div id="scriptPromptMentions" class="prompt-mention-row"></div>
+                            </div>
+                        </div>
+
+                        <details id="advancedGenerationSettings" class="card collapsible-card advanced-settings-card">
+                            <summary class="card-header collapsible-summary">
+                                <div class="advanced-settings-heading">
+                                    <h3>更多选项</h3>
+                                    <div id="advancedSettingsSummary" class="advanced-settings-summary">
+                                        <span id="advancedModeSummary">模式：默认</span>
+                                        <span id="advancedInstructionSummary">额外要求：无</span>
+                                        <span id="advancedStoryboardSummary">分镜驱动：主线启用</span>
+                                    </div>
+                                </div>
+                                <div class="collapsible-actions">
+                                    <span class="badge">可选</span>
+                                </div>
+                            </summary>
+                            <div class="card-body">
+                                <div class="advanced-settings-grid">
+                                    <div class="form-group advanced-setting-block advanced-setting-block-wide">
+                                        <label for="scriptProcessInstruction">额外要求</label>
+                                        <textarea id="scriptProcessInstruction" rows="4" placeholder="可选：例如强调节奏、更细分动作、保留某些台词、避免新增角色、统一镜头风格等。" oninput="updateAdvancedSettingsSummary()"></textarea>
+                                        <div id="instructionPromptMentions" class="prompt-mention-row"></div>
+                                        <div class="instruction-file-row">
+                                            <span>上传指导文件</span>
+                                            <input type="file" accept=".md,.txt,text/markdown,text/plain" onchange="loadInstructionFileToTextarea(this, 'scriptProcessInstruction')">
+                                        </div>
+                                        <small class="field-hint">只影响本次 Image Prompt / Video Prompt 主线，不会修改视频模式提示词。</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="directorModeSelect">视频模式</label>
+                                            <button class="btn btn-sm btn-secondary" onclick="switchToTab('director-modes')">管理模式</button>
+                                        </div>
+                                        <select id="directorModeSelect" onchange="updateAdvancedSettingsSummary()"></select>
+                                        <small id="directorModeHint" class="field-hint">可在"模式管理 → 视频模式"中新增、编辑、改名。</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block storyboard-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="storyboardModeToggle">分镜图驱动</label>
+                                            <span id="storyboardToggleText" class="advanced-state-text">未启用</span>
+                                        </div>
+                                        <label class="switch-row storyboard-toggle-row">
+                                            <input type="checkbox" id="storyboardModeToggle" onchange="setStoryboardPromptsEnabled(this.checked)">
+                                            <span class="switch-control" aria-hidden="true"></span>
+                                            <span>主线使用分镜图驱动视频</span>
+                                        </label>
+                                        <small id="storyboardToggleHint" class="field-hint">主线会自动分段并生成 Image Prompt；分镜图、Video Prompt 和视频需要用户检查后手动生成。关闭仅用于兼容旧流程。</small>
+                                        <button id="storyboardEnableShortcut" type="button" class="btn btn-sm btn-secondary" onclick="setStoryboardPromptsEnabled(true)">启用主线分镜驱动</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                        <select id="storyboardRatioSelect" class="hidden"><option value="16:9">16:9</option></select>
+
+                        <button id="btnProcess" class="btn btn-primary btn-lg" onclick="processScript()">
+                            <span class="btn-icon">▶</span> 开始制片
+                        </button>
+                    </div>
+
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-output-title>片段流水线</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <!-- 初始占位 -->
+                        <div id="resultPlaceholderCard" class="card">
+                            <div class="card-header">
+                                <h3>🎬 片段流水线</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultArea" class="result-placeholder">
+                                    <div class="placeholder-icon">🎥</div>
+                                    <p>生成后，每个短段落会单独显示为一个 Prompt 格子</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 片段流水线（可编辑） -->
+                        <div id="storyboardPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3 id="storyboardPanelTitle">📋 片段流水线</h3>
+                                <div id="storyboardPreviewActions" class="storyboard-preview-actions">
+                                    <span id="segmentCount" class="badge">0个Image段落</span>
+                                    <span id="storyboardPromptToggleStatus" class="badge storyboard-advanced-action">分镜驱动已启用</span>
+                                    <button id="storyboardPromptToggleBtn" class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleStoryboardPromptsEnabled()">兼容旧流程</button>
+                                    <button class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleRawView()">查看原文</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 原始文本（可切换查看） -->
+                                <div id="rawResultPanel" class="hidden" style="margin-bottom:16px">
+                                    <div id="resultContent" class="result-content" style="max-height:300px"></div>
+                                    <hr style="border-color:var(--border);margin:12px 0">
+                                </div>
+                                <!-- 分片段编辑区 -->
+                                <div id="segmentsList" class="segments-list"></div>
+                            </div>
+                            <div id="mergedVideoPanel" class="merged-video-panel hidden"></div>
+                            <div id="storyboardPanelFooter" class="card-footer" style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+                                <button class="btn btn-success" onclick="generateAllVideos()">
+                                    <span class="btn-icon">🚀</span> 全部生成
+                                </button>
+                                <button class="btn btn-success" onclick="generateAllVideosSequentially(this)">
+                                    <span class="btn-icon">🔗</span> 按顺序生成并引用上个视频
+                                </button>
+                                <button class="btn btn-primary" onclick="mergeProjectVideos()">
+                                    <span class="btn-icon">🎞️</span> 一键拼接
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 剧本处理页：隐藏左侧导航，仅从工作台/流水线进入 -->
+            <section id="tab-script-breakdown" class="tab-content">
+                <div class="page-header">
+                    <h1>Extra：剧本预处理</h1>
+                    <p class="page-desc">可选 Extra：先拆解原始剧本，再复制到制片流水线或剪贴板</p>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="原始剧本" data-output-title="拆解结果">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-rail-title>原始剧本</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>输入与拆解设置</strong>
+                                <span>结果生成后可收起，专注校对右侧拆解稿。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script-breakdown')">收起输入</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3>原始剧本</h3></div>
+                            <div class="card-body">
+                                <textarea id="breakdownInput" placeholder="在此粘贴原始剧本，AI 会拆解为可继续处理的段落结构..." rows="16"></textarea>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>拆解要求</h3>
+                                <span class="badge">可选</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownInstruction" rows="10" placeholder="可选：补充拆解偏好，例如按场景拆、按对白密度拆、强化人物行动线、适配短视频节奏等。">你是AI短视频生产流程中的"剧本统筹与空间连续性拆解师"。
+
+项目流程背景：后续AI编导会把剧本继续拆成多个≤15秒的视频片段；每个视频片段会生成【首帧锚定图】和【尾帧衔接图】，并在视频生成时与场景图、人物图一起作为最多9张参考图输入。因此你的拆解不是普通剧情摘要，而是要为后续视频分镜、AI绘画首尾帧、空间一致性和跨片段衔接提供清晰依据。
+
+任务：把用户提供的原始剧本拆解成结构清晰、可继续交给视频台本编导/首尾帧绘画提示词编导处理的"拆解后剧本"。不要直接生成视频提示词，不要直接生成绘画提示词，只输出拆解后的剧本正文。
+
+输出规则：
+1. 按剧情顺序拆成若干剧情段落，每段用"===SCRIPT_SPLIT==="分隔。
+2. 每段必须尽量对应一个相对连续的时空/场景单元；如果场景、时间、人物站位关系或剧情目标发生明显变化，应拆成新段。
+3. 每段必须包含以下小节，且小节名称保持一致：
+   段落标题
+   场景/时空
+   出场人物
+   剧情目标
+   动作与对白
+   情绪节奏
+   关键道具
+   空间关系与站位
+   首帧锚定依据
+   尾帧衔接依据
+   连续性备注
+4. 【动作与对白】必须保留原始对白、说话人、说话顺序和关键动作，不要丢失人物关系与剧情因果。
+5. 【空间关系与站位】必须写清：主要固定参照物、人物在场景中的相对位置、左右关系、前后层次、距离、身体朝向、视线关系、光线方向或镜头轴线线索。
+6. 【首帧锚定依据】只描述本段开始时可画成单张静态图的确定状态。
+7. 【尾帧衔接依据】只描述本段结束时可画成单张静态图的确定状态。
+8. 【连续性备注】说明与上一段/下一段需要保持不变的场景元素、人物方向、道具状态、光线、轴线、服装和情绪延续。
+9. 不要输出解释说明，不要输出JSON，不要输出Markdown表格，不要生成视频分镜编号，不要生成AI绘画提示词。
+10. 如果原剧本很短，也至少整理成一个完整段落。</textarea>
+                            </div>
+                        </div>
+                        <button id="btnBreakdownScript" class="btn btn-primary btn-lg" onclick="breakdownScript()">
+                            <span class="btn-icon">▶</span> AI拆解剧本
+                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-output-title>拆解结果</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div id="breakdownPlaceholderCard" class="card">
+                            <div class="card-header"><h3>拆解结果</h3></div>
+                            <div class="card-body">
+                                <div class="result-placeholder">
+                                    <div class="placeholder-icon">TXT</div>
+                                    <p>拆解后的剧本将在这里显示，可继续进入分镜或视频流程</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="breakdownResultPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3>拆解后剧本</h3>
+                                <span id="breakdownPartCount" class="badge">0段</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownResultText" class="breakdown-result-editor" rows="20" placeholder="拆解结果可在这里继续编辑"></textarea>
+                                <div class="breakdown-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="copyBreakdownToClipboard()">复制到剪贴板</button>
+                                    <button class="btn btn-sm btn-primary" onclick="fillBreakdownToVideo()">填入制片流水线</button>
+                                    <button class="btn btn-sm btn-success" onclick="fillBreakdownToVideoAndOpen()">填入视频并打开</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 引擎导出页：隐藏左侧导航，仅从工作台/流水线进入 -->
+            <section id="tab-ue5-json" class="tab-content">
+                <div class="page-header page-hero optional-page-hero">
+                    <div>
+                        <span class="eyebrow">可选导出</span>
+                        <h1>引擎导出</h1>
+                        <p class="page-desc">需要 UE 或引擎侧过场动画时，再从当前项目整理并导出 JSON。</p>
+                    </div>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="整理稿输入" data-output-title="导出结果">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-rail-title>整理稿输入</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>台本整理</strong>
+                                <span>导出 JSON 后可收起，右侧专注校验和镜头参数。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('ue5-json')">收起输入</button>
+                        </div>
+                        <div id="ue5JsonSourceStepCard" class="card ue5-json-step-card">
+                            <div class="card-header">
+                                <h3>第一步：整理台本</h3>
+                                <span class="badge">GPT处理</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>原始台本</label>
+                                    <textarea id="ue5JsonTextInput" rows="10" placeholder="粘贴视频台本，或从视频生成页一键导入。第一步会先输出全体人物站位信息，再保留镜头描述、说话人、说话时长和动作信息。"></textarea>
+                                    <small class="field-hint">第一步不会导出 JSON，只生成给你确认和修改的站位与镜头整理稿。</small>
+                                </div>
+                                <button id="btnPrepareUe5JsonText" class="btn btn-primary btn-lg" onclick="prepareUe5JsonText()">
+                                    <span class="btn-icon">▶</span> 第一步：GPT整理台本
+                                </button>
+                            </div>
+                        </div>
+                        <div id="ue5JsonPreparedStepCard" class="card ue5-json-step-card ue5-json-step-hidden">
+                            <div class="card-header">
+                                <h3>第二步前：确认整理稿</h3>
+                                <span id="ue5PreparedStatus" class="badge">待整理</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>可编辑确认稿</label>
+                                    <textarea id="ue5JsonPreparedText" rows="14" placeholder="第一步生成后会出现在这里。请优先检查全体人物站位信息，再修改镜头描述、说话人、说话时长和动作信息，最后点击下方按钮导出 JSON。"></textarea>
+                                    <small class="field-hint">这里的内容会作为第二步生成 JSON 的唯一文本依据。</small>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="btnGenerateUe5JsonDirect" class="btn btn-success btn-lg ue5-json-step-hidden" onclick="generateUe5JsonDirect()">
+                            <span class="btn-icon">DL</span> 第二步：一键导出 JSON
+                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-output-title>导出结果</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>生成结果</h3>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <span id="ue5JsonStatus" class="badge">待生成</span>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="triggerUe5JsonImportFile()">导入JSON</button>
+                                    <input id="ue5JsonImportInput" type="file" accept=".json,application/json" onchange="importUe5JsonFile(this.files?.[0]); this.value=''">
+                                    <button id="btnDownloadUe5JsonDirect" class="btn btn-sm btn-secondary hidden" onclick="downloadLastUe5JsonDirect()">下载文件</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5JsonSummary" class="local-path">完成第一步确认稿后，点击第二步导出 JSON，结果会自动下载并在这里预览。</div>
+                                <pre id="ue5JsonPreview" class="result-content ue5-json-preview">{}</pre>
+                            </div>
+                        </div>
+                        <div class="card ue5-camera-editor-card">
+                            <div class="card-header">
+                                <h3>镜头可视化编辑</h3>
+                                <span id="ue5CameraEditorStatus" class="badge">待载入</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5CameraEditorEmpty" class="empty-state"><p>生成或导入 UE JSON 后，可以在这里按 UE5 镜头参数编辑并导入 3D 截图模式验证。</p></div>
+                                <div id="ue5CameraEditor" class="ue5-camera-editor hidden">
+                                    <div class="ue5-camera-toolbar">
+                                        <label>镜头<select id="ue5ShotSelect" onchange="onUe5ShotSelectionChange()"></select></label>
+                                        <label>关键帧<select id="ue5CameraKeySelect" onchange="syncUe5CameraEditorFromSelection()"></select></label>
+                                    </div>
+                                    <div class="ue5-camera-toolbar">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="addUe5CameraKeyframe()">新增关键帧</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="deleteUe5CameraKeyframe()">删除关键帧</button>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="importSelectedUe5ShotToReference3D()">导入3D截图验证</button>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="applyUe5CameraEditorChanges()">应用到JSON</button>
+                                    </div>
+                                    <div class="ue5-shot-meta-grid">
+                                        <label>镜头时长<input id="ue5ShotCamLength" type="number" step="0.1" min="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Talk ID<input id="ue5ShotTalkID" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>说话

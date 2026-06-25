@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台本一键出视频 - 制片流水线</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260624-2018-restore01">
+    <script>
+        if (location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="./style.css?v=20260624-2018-restore01">');
+        }
+    </script>
+</head>
+<body>
+    <div class="app">
+        <!-- 侧边导航 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">AI</span>
+                <span class="logo-text">台本出视频</span>
+            </div>
+            <div class="sidebar-status">
+                <span>主线</span>
+                <strong>台本 → Image → 分镜 → 视频</strong>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-section-label">工作台</li>
+                <li class="nav-item nav-primary" data-tab="workbench">
+                    <span class="nav-icon nav-icon-workbench" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>项目工作台</strong><small>总览</small></span>
+                </li>
+                <li class="nav-section-label">生成</li>
+                <li class="nav-item active nav-primary" data-tab="script">
+                    <span class="nav-icon nav-icon-video" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>制片流水线</strong><small>主线</small></span>
+                </li>
+                <li class="nav-item nav-optional" data-tab="script-breakdown">
+                    <span class="nav-icon nav-icon-script-breakdown" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>剧本预处理</strong><small>Extra</small></span>
+                </li>
+                <li class="nav-item nav-optional" data-tab="storyboard">
+                    <span class="nav-icon nav-icon-storyboard" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>分镜辅助</strong><small>可选增强</small></span>
+                </li>
+                <li class="nav-section-label">工具</li>
+                <li class="nav-item" data-tab="video-editor">
+                    <span class="nav-icon nav-icon-video-editor" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>视频编辑</strong><small>成片修补</small></span>
+                </li>
+                <li class="nav-item nav-optional" data-tab="ue5-json">
+                    <span class="nav-icon nav-icon-engine" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>引擎导出</strong><small>可选</small></span>
+                </li>
+                <li class="nav-item" data-tab="reference-3d">
+                    <span class="nav-icon nav-icon-3d" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>3D参考</strong><small>构图辅助</small></span>
+                </li>
+                <li class="nav-section-label">资产</li>
+                <li class="nav-item" data-tab="scenes">
+                    <span class="nav-icon nav-icon-scenes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>场景库</strong><small>素材</small></span>
+                </li>
+                <li class="nav-item" data-tab="characters">
+                    <span class="nav-icon nav-icon-characters" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>人物库</strong><small>角色</small></span>
+                </li>
+                <li class="nav-item" data-tab="assets">
+                    <span class="nav-icon nav-icon-assets" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>资产库</strong><small>浏览</small></span>
+                </li>
+                <li class="nav-item" data-tab="prompt-library">
+                    <span class="nav-icon nav-icon-prompt" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>提示词库</strong><small>复用</small></span>
+                </li>
+                <li class="nav-section-label">系统</li>
+                <li class="nav-item" data-tab="projects">
+                    <span class="nav-icon nav-icon-projects" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>项目管理</strong><small>归档</small></span>
+                </li>
+                <li class="nav-item" data-tab="director-modes">
+                    <span class="nav-icon nav-icon-modes" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>视频模式</strong><small>模板</small></span>
+                </li>
+                <li class="nav-item" data-tab="settings">
+                    <span class="nav-icon nav-icon-settings" aria-hidden="true"></span>
+                    <span class="nav-copy"><strong>设置</strong><small>连接</small></span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+
+            <div class="top-project-bar">
+                <div class="top-project-info">
+                    <span class="top-project-label">当前项目</span>
+                    <strong id="currentProjectName">加载中...</strong>
+                    <span id="currentProjectMeta">正在加载最新项目</span>
+                </div>
+                <div class="top-project-actions">
+                    <button id="btnOpenCurrentProject" class="btn btn-sm btn-secondary" onclick="openCurrentProjectFromBar()">打开项目</button>
+                    <button class="btn btn-sm btn-primary" onclick="showTopProjectModal()"><span class="btn-icon">+</span> 新建项目</button>
+                </div>
+            </div>
+
+            <!-- 项目工作台 -->
+            <section id="tab-workbench" class="tab-content">
+                <div class="workbench-shell">
+                    <div class="workbench-hero">
+                        <div class="workbench-hero-copy">
+                            <span class="eyebrow">项目总控</span>
+                            <h1>台本到分镜，再到视频</h1>
+                            <p class="page-desc">主线先把台本自动分段成 Image Prompt，确认后再手动生成分镜图、Video Prompt 和视频；3D 参考、引擎导出、视频编辑与素材库作为 Extra 保留。</p>
+                        </div>
+                        <div class="workbench-hero-rail">
+                            <div id="workbenchNextAction" class="workbench-next-action"></div>
+                            <div class="workbench-optional-note">
+                                <span>可选增强</span>
+                                <button type="button" onclick="switchToTab('storyboard')">分镜辅助</button>
+                                <button type="button" onclick="switchToTab('reference-3d')">3D参考</button>
+                                <button type="button" onclick="switchToTab('ue5-json')">引擎导出</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="workbenchKpiGrid" class="workbench-kpi-grid"></div>
+
+                    <div class="workbench-layout">
+                        <div class="workbench-main-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>制片流水线</h3>
+                                        <p>按 Image Prompt、分镜图、Video Prompt、视频的顺序推进，状态会从项目和片段里自动读取。</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">打开制片流水线</button>
+                                </div>
+                                <div id="workbenchFlowSteps" class="workbench-flow-steps"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>片段时间线</h3>
+                                        <p>查看分镜、视频和生成状态，快速跳转到当前片段编辑。</p>
+                                    </div>
+                                    <div class="workbench-panel-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="switchToTab('script')">编辑片段</button>
+                                        <button class="btn btn-sm btn-primary" onclick="generateAllVideos()">全部生成</button>
+                                    </div>
+                                </div>
+                                <div id="workbenchSegmentList" class="workbench-segment-list"></div>
+                            </div>
+                        </div>
+
+                        <aside class="workbench-side-column">
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>任务中心</h3>
+                                        <p>长任务不会阻塞你继续检查项目。</p>
+                                    </div>
+                                </div>
+                                <div id="workbenchTaskCenter" class="workbench-task-center"></div>
+                            </div>
+
+                            <div class="workbench-panel">
+                                <div class="workbench-panel-header">
+                                    <div>
+                                        <h3>快捷入口</h3>
+                                        <p>围绕当前项目继续处理。</p>
+                                    </div>
+                                </div>
+                                <div class="workbench-shortcuts">
+                                    <button class="btn btn-secondary" onclick="switchToTab('scenes')">场景库</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('characters')">人物库</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('video-editor')">视频编辑</button>
+                                    <button class="btn btn-secondary" onclick="switchToTab('ue5-json')">导入引擎</button>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 剧本处理页 -->
+            <section id="tab-script-breakdown" class="tab-content">
+                <div class="page-header">
+                    <h1>Extra：剧本预处理</h1>
+                    <p class="page-desc">可选 Extra：先拆解原始剧本，再复制到制片流水线或剪贴板</p>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="原始剧本" data-output-title="拆解结果">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-rail-title>原始剧本</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>输入与拆解设置</strong>
+                                <span>结果生成后可收起，专注校对右侧拆解稿。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script-breakdown')">收起输入</button>
+                        </div>
+                        <div class="card flow-script-input-card">
+                            <div class="card-header">
+                                <h3>📝 原始剧本</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownInput" placeholder="在此粘贴原始剧本，AI 会拆解为可继续处理的段落结构..." rows="16"></textarea>
+                            </div>
+                        </div>
+                        <div class="card flow-material-card">
+                            <div class="card-header">
+                                <h3>⚙️ 拆解要求</h3>
+                                <span class="badge">可选</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownInstruction" rows="10" placeholder="可选：补充拆解偏好，例如按场景拆、按对白密度拆、强化人物行动线、适配短视频节奏等。">你是AI短视频生产流程中的“剧本统筹与空间连续性拆解师”。
+
+项目流程背景：后续AI编导会把剧本继续拆成多个≤15秒的视频片段；每个视频片段会生成【首帧锚定图】和【尾帧衔接图】，并在视频生成时与场景图、人物图一起作为最多9张参考图输入。因此你的拆解不是普通剧情摘要，而是要为后续视频分镜、AI绘画首尾帧、空间一致性和跨片段衔接提供清晰依据。
+
+任务：把用户提供的原始剧本拆解成结构清晰、可继续交给视频台本编导/首尾帧绘画提示词编导处理的“拆解后剧本”。不要直接生成视频提示词，不要直接生成绘画提示词，只输出拆解后的剧本正文。
+
+输出规则：
+1. 按剧情顺序拆成若干剧情段落，每段用“===SCRIPT_SPLIT===”分隔。
+2. 每段必须尽量对应一个相对连续的时空/场景单元；如果场景、时间、人物站位关系或剧情目标发生明显变化，应拆成新段。
+3. 每段必须包含以下小节，且小节名称保持一致：
+   段落标题
+   场景/时空
+   出场人物
+   剧情目标
+   动作与对白
+   情绪节奏
+   关键道具
+   空间关系与站位
+   首帧锚定依据
+   尾帧衔接依据
+   连续性备注
+4. 【动作与对白】必须保留原始对白、说话人、说话顺序和关键动作，不要丢失人物关系与剧情因果。
+5. 【空间关系与站位】必须写清：主要固定参照物、人物在场景中的相对位置、左右关系、前后层次、距离、身体朝向、视线关系、光线方向或镜头轴线线索。
+6. 【首帧锚定依据】只描述本段开始时可画成单张静态图的确定状态：谁在画面左/中/右，谁在前景/中景/背景，靠近什么固定物，动作姿势和表情是什么。
+7. 【尾帧衔接依据】只描述本段结束时可画成单张静态图的确定状态：人物是否位移、站位是否改变、视线/姿势/道具状态如何，为下一段衔接提供依据。
+8. 【连续性备注】说明与上一段/下一段需要保持不变的场景元素、人物方向、道具状态、光线、轴线、服装和情绪延续。
+9. 不要输出解释说明，不要输出JSON，不要输出Markdown表格，不要生成视频分镜编号，不要生成AI绘画提示词。
+10. 如果原剧本很短，也至少整理成一个完整段落。</textarea>
+                            </div>
+                        </div>
+                        <button id="btnBreakdownScript" class="btn btn-primary btn-lg" onclick="breakdownScript()">
+                            <span class="btn-icon">🧩</span> AI拆解剧本
+                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script-breakdown', false, { manual: true })">
+                        <strong data-workflow-output-title>拆解结果</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div id="breakdownPlaceholderCard" class="card">
+                            <div class="card-header"><h3>🧩 拆解结果</h3></div>
+                            <div class="card-body">
+                                <div class="result-placeholder">
+                                    <div class="placeholder-icon">🧩</div>
+                                    <p>拆解后的剧本将在这里显示，可继续进入分镜或视频流程</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="breakdownResultPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3>📋 拆解后剧本</h3>
+                                <span id="breakdownPartCount" class="badge">0段</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="breakdownResultText" class="breakdown-result-editor" rows="20" placeholder="拆解结果可在这里继续编辑"></textarea>
+                                <div class="breakdown-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="copyBreakdownToClipboard()">复制到剪贴板</button>
+                                    <button class="btn btn-sm btn-primary" onclick="fillBreakdownToVideo()">填入制片流水线</button>
+                                    <button class="btn btn-sm btn-success" onclick="fillBreakdownToVideoAndOpen()">填入视频并打开</button>
+                                </div>
+                                <div class="storyboard-mode-tips">
+                                    <div>• 路线 A：原始剧本 → 可选 AI 拆解 → 制片流水线生成 Image Prompt → 分镜图 → Video Prompt → 视频。</div>
+                                    <div>• 主线已默认集成 Image Prompt 和分镜图驱动；这里仅作为前置整理 Extra 保留。</div>
+                                    <div>• 拆解结果可编辑后再填入其他文本框。</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 制片流水线页 -->
+            <section id="tab-script" class="tab-content active">
+                <div class="production-flow-top">
+                    <div class="production-flow-titlebar">
+                        <h1>制片流水线</h1>
+                        <button type="button" class="btn btn-primary production-title-action" onclick="processScript()">开始制片</button>
+                    </div>
+                    <div class="production-top-banner" id="productionTopBanner">
+                        <button type="button" class="production-top-step active" data-flow-step="script" onclick="focusProductionFlowStep('script')">
+                            <span class="top-step-no">01</span>
+                            <span class="top-step-copy">
+                                <strong>台本</strong>
+                                <small id="flowStepScriptMeta">等待台本</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="video" onclick="focusProductionFlowStep('video')">
+                            <span class="top-step-no">02</span>
+                            <span class="top-step-copy">
+                                <strong>分镜 / 视频</strong>
+                                <small id="flowStepVideoMeta">等待 Video Prompt</small>
+                            </span>
+                        </button>
+                        <button type="button" class="production-top-step" data-flow-step="edit" onclick="focusProductionFlowStep('edit')">
+                            <span class="top-step-no">03</span>
+                            <span class="top-step-copy">
+                                <strong>编辑</strong>
+                                <small id="flowStepEditMeta">等待视频</small>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="台本与素材" data-output-title="片段流水线">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-rail-title>台本与素材</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>台本与素材</strong>
+                                <span>输入台本，确认人物和场景。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('script')">收起输入</button>
+                        </div>
+                        <div class="card flow-script-input-card">
+                            <div class="card-header">
+                                <h3>📝 输入台本</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="scriptInput" placeholder="在此粘贴完整原始台本，不需要提前拆段。系统会按情绪节奏和预计时长自动分成15秒以内段落，并直接生成每段 Image Prompt。&#10;&#10;例如：&#10;时运：大家准备好了吗？这次任务不简单。&#10;雅玲：师兄，我们都准备好了。&#10;小星：嘿嘿，交给我吧！" rows="16"></textarea>
+                                <div id="scriptPromptMentions" class="prompt-mention-row"></div>
+                            </div>
+                        </div>
+
+                        <details id="advancedGenerationSettings" class="card collapsible-card advanced-settings-card">
+                            <summary class="card-header collapsible-summary">
+                                <div class="advanced-settings-heading">
+                                    <h3>⚙️ 高级生成设置</h3>
+                                    <div id="advancedSettingsSummary" class="advanced-settings-summary">
+                                        <span id="advancedModeSummary">模式：默认</span>
+                                        <span id="advancedInstructionSummary">额外要求：无</span>
+                                        <span id="advancedStoryboardSummary">分镜驱动：主线启用</span>
+                                    </div>
+                                </div>
+                                <div class="collapsible-actions">
+                                    <span class="badge">可选</span>
+                                </div>
+                            </summary>
+                            <div class="card-body">
+                                <div class="advanced-settings-grid">
+                                    <div class="form-group advanced-setting-block advanced-setting-block-wide">
+                                        <label for="scriptProcessInstruction">额外要求</label>
+                                        <textarea id="scriptProcessInstruction" rows="4" placeholder="可选：例如强调节奏、更细分动作、保留某些台词、避免新增角色、统一镜头风格等。" oninput="updateAdvancedSettingsSummary()"></textarea>
+                                        <div id="instructionPromptMentions" class="prompt-mention-row"></div>
+                                        <div class="instruction-file-row">
+                                            <span>上传指导文件</span>
+                                            <input type="file" accept=".md,.txt,text/markdown,text/plain" onchange="loadInstructionFileToTextarea(this, 'scriptProcessInstruction')">
+                                        </div>
+                                        <small class="field-hint">只影响本次 Image Prompt / Video Prompt 主线，不会修改视频模式提示词。</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="directorModeSelect">视频模式</label>
+                                            <button class="btn btn-sm btn-secondary" onclick="switchToTab('director-modes')">管理模式</button>
+                                        </div>
+                                        <select id="directorModeSelect" onchange="updateAdvancedSettingsSummary()"></select>
+                                        <small id="directorModeHint" class="field-hint">可在“模式管理 → 视频模式”中新增、编辑、改名。</small>
+                                    </div>
+
+                                    <div class="form-group advanced-setting-block storyboard-setting-block">
+                                        <div class="advanced-field-heading">
+                                            <label for="storyboardModeToggle">分镜图驱动</label>
+                                            <span id="storyboardToggleText" class="advanced-state-text">未启用</span>
+                                        </div>
+                                        <label class="switch-row storyboard-toggle-row">
+                                            <input type="checkbox" id="storyboardModeToggle" onchange="setStoryboardPromptsEnabled(this.checked)">
+                                            <span class="switch-control" aria-hidden="true"></span>
+                                            <span>主线使用分镜图驱动视频</span>
+                                        </label>
+                                        <small id="storyboardToggleHint" class="field-hint">主线会自动分段并生成 Image Prompt；分镜图、Video Prompt 和视频需要用户检查后手动生成。关闭仅用于兼容旧流程。</small>
+                                        <button id="storyboardEnableShortcut" type="button" class="btn btn-sm btn-secondary" onclick="setStoryboardPromptsEnabled(true)">启用主线分镜驱动</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                        <select id="storyboardRatioSelect" class="hidden"><option value="16:9">16:9</option></select>
+
+                        <!-- 本剧本会用到的素材：决定 AI 上下文与台本中 @ 候选范围 -->
+                        <div class="card flow-material-card">
+                            <div class="card-header">
+                                <h3>🎯 本剧本会用到的素材</h3>
+                                <span class="badge">建议勾选</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="field-hint" style="margin-bottom:8px;">勾上这次台本里会出现的人物和场景，AI 会在 Image Prompt 里建立角色锁、场景锁和参考图顺序。<br>后续生成分镜图和视频时，@ 到的人物/场景会作为参考图；勾了但没 @ 到的，也会一起作为辅助参考。</div>
+                                <div class="select-group">
+                                    <label>本剧本用到的场景</label>
+                                    <div id="sceneSelect" class="chip-select"></div>
+                                </div>
+                                <div class="select-group">
+                                    <label>本剧本出场的人物</label>
+                                    <div id="charSelect" class="chip-select"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btnProcess" class="btn btn-primary btn-lg" onclick="processScript()">
+                            <span class="btn-icon">▶</span> 生成分段 Image Prompt
+                        </button>
+                    </div>
+
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('script', false, { manual: true })">
+                        <strong data-workflow-output-title>片段流水线</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <!-- 初始占位 -->
+                        <div id="resultPlaceholderCard" class="card">
+                            <div class="card-header">
+                                <h3>🎬 片段流水线</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultArea" class="result-placeholder">
+                                    <div class="placeholder-icon">🎥</div>
+                                    <p>生成后，每个短段落会单独显示为一个 Prompt 格子</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 片段流水线（可编辑） -->
+                        <div id="storyboardPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3 id="storyboardPanelTitle">📋 片段流水线</h3>
+                                <div id="storyboardPreviewActions" class="storyboard-preview-actions">
+                                    <span id="segmentCount" class="badge">0个Image段落</span>
+                                    <span id="storyboardPromptToggleStatus" class="badge storyboard-advanced-action">分镜驱动已启用</span>
+                                    <button id="storyboardPromptToggleBtn" class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleStoryboardPromptsEnabled()">兼容旧流程</button>
+                                    <button id="generateAllStoryboardPromptsBtn" class="btn btn-sm btn-primary hidden" onclick="generateAllStoryboardPrompts()">🧠 重新生成 Image Prompt</button>
+                                    <button class="btn btn-sm btn-success storyboard-advanced-action" onclick="importSegmentsToUe5JsonText()">导出引擎JSON</button>
+                                    <button class="btn btn-sm btn-secondary storyboard-advanced-action" onclick="toggleRawView()">查看原文</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 原始文本（可切换查看） -->
+                                <div id="rawResultPanel" class="hidden" style="margin-bottom:16px">
+                                    <div id="resultContent" class="result-content" style="max-height:300px"></div>
+                                    <hr style="border-color:var(--border);margin:12px 0">
+                                </div>
+                                <!-- 分片段编辑区 -->
+                                <div id="segmentsList" class="segments-list"></div>
+                            </div>
+                            <div id="mergedVideoPanel" class="merged-video-panel hidden"></div>
+                            <div id="storyboardPanelFooter" class="card-footer" style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+                                <button class="btn btn-success" onclick="generateAllVideos()">
+                                    <span class="btn-icon">🚀</span> 全部生成
+                                </button>
+                                <button class="btn btn-success" onclick="generateAllVideosSequentially(this)">
+                                    <span class="btn-icon">🔗</span> 按顺序生成并引用上个视频
+                                </button>
+                                <button class="btn btn-primary" onclick="mergeProjectVideos()">
+                                    <span class="btn-icon">🎞️</span> 一键拼接
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 导入引擎专属生成页 -->
+            <section id="tab-ue5-json" class="tab-content">
+                <div class="page-header page-hero optional-page-hero">
+                    <div>
+                        <span class="eyebrow">可选导出</span>
+                        <h1>引擎导出</h1>
+                        <p class="page-desc">需要 UE 或引擎侧过场动画时，再从当前项目整理并导出 JSON。</p>
+                    </div>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="整理稿输入" data-output-title="导出结果">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-rail-title>整理稿输入</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>台本整理</strong>
+                                <span>导出 JSON 后可收起，右侧专注校验和镜头参数。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('ue5-json')">收起输入</button>
+                        </div>
+                        <div id="ue5JsonSourceStepCard" class="card ue5-json-step-card">
+                            <div class="card-header">
+                                <h3>📝 第一步：整理台本</h3>
+                                <span class="badge">GPT处理</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>原始台本</label>
+                                    <textarea id="ue5JsonTextInput" rows="10" placeholder="粘贴视频台本，或从视频生成页一键导入。第一步会先输出全体人物站位信息，再保留镜头描述、说话人、说话时长和动作信息。"></textarea>
+                                    <small class="field-hint">第一步不会导出 JSON，只生成给你确认和修改的站位与镜头整理稿。</small>
+                                </div>
+                                <button id="btnPrepareUe5JsonText" class="btn btn-primary btn-lg" onclick="prepareUe5JsonText()">
+                                    <span class="btn-icon">🧠</span> 第一步：GPT整理台本
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="ue5JsonPreparedStepCard" class="card ue5-json-step-card ue5-json-step-hidden">
+                            <div class="card-header">
+                                <h3>✅ 第二步前：确认整理稿</h3>
+                                <span id="ue5PreparedStatus" class="badge">待整理</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>可编辑确认稿</label>
+                                    <textarea id="ue5JsonPreparedText" rows="14" placeholder="第一步生成后会出现在这里。请优先检查全体人物站位信息，再修改镜头描述、说话人、说话时长和动作信息，最后点击下方按钮导出 JSON。"></textarea>
+                                    <small class="field-hint">这里的内容会作为第二步生成 JSON 的唯一文本依据。</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btnGenerateUe5JsonDirect" class="btn btn-success btn-lg ue5-json-step-hidden" onclick="generateUe5JsonDirect()">
+                            <span class="btn-icon">📦</span> 第二步：一键导出 JSON
+                        </button>
+                    </div>
+
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('ue5-json', false, { manual: true })">
+                        <strong data-workflow-output-title>导出结果</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>📦 生成结果</h3>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <span id="ue5JsonStatus" class="badge">待生成</span>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="triggerUe5JsonImportFile()">导入JSON</button>
+                                    <input id="ue5JsonImportInput" type="file" accept=".json,application/json" onchange="importUe5JsonFile(this.files?.[0]); this.value=''">
+                                    <button id="btnDownloadUe5JsonDirect" class="btn btn-sm btn-secondary hidden" onclick="downloadLastUe5JsonDirect()">下载文件</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5JsonSummary" class="local-path">完成第一步确认稿后，点击第二步导出 JSON，结果会自动下载并在这里预览。</div>
+                                <pre id="ue5JsonPreview" class="result-content ue5-json-preview">{}</pre>
+                            </div>
+                        </div>
+                        <div class="card ue5-camera-editor-card">
+                            <div class="card-header">
+                                <h3>🎥 镜头可视化编辑</h3>
+                                <span id="ue5CameraEditorStatus" class="badge">待载入</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="ue5CameraEditorEmpty" class="empty-state"><p>生成或导入 UE JSON 后，可以在这里按 UE5 镜头参数编辑并导入 3D 截图模式验证。</p></div>
+                                <div id="ue5CameraEditor" class="ue5-camera-editor hidden">
+                                    <div class="ue5-camera-toolbar">
+                                        <label>镜头<select id="ue5ShotSelect" onchange="onUe5ShotSelectionChange()"></select></label>
+                                        <label>关键帧<select id="ue5CameraKeySelect" onchange="syncUe5CameraEditorFromSelection()"></select></label>
+                                    </div>
+                                    <div class="ue5-camera-toolbar">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="addUe5CameraKeyframe()">新增关键帧</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="deleteUe5CameraKeyframe()">删除关键帧</button>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="importSelectedUe5ShotToReference3D()">导入3D截图验证</button>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="applyUe5CameraEditorChanges()">应用到JSON</button>
+                                    </div>
+                                    <div class="ue5-shot-meta-grid">
+                                        <label>镜头时长<input id="ue5ShotCamLength" type="number" step="0.1" min="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Talk ID<input id="ue5ShotTalkID" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>说话开始<input id="ue5ShotTalkStart" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>说话结束<input id="ue5ShotTalkEnd" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                    </div>
+                                    <div class="ue5-camera-section-title">Camera Actor</div>
+                                    <div class="ue5-camera-param-grid">
+                                        <label>Key Seconds<input id="ue5CameraKeySeconds" type="number" step="0.1" min="0" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location X<input id="ue5CameraPosX" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location Y<input id="ue5CameraPosY" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Location Z<input id="ue5CameraPosZ" type="number" step="1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation X<input id="ue5CameraRotX" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation Y<input id="ue5CameraRotY" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Rotation Z<input id="ue5CameraRotZ" type="number" step="0.1" onchange="applyUe5CameraEditorChanges()"></label>
+                                        <label>Field Of View<input id="ue5CameraFov" type="number" step="0.1" min="5" max="170" onchange="applyUe5CameraEditorChanges()"></label>
+                                    </div>
+                                    <div class="ue5-camera-section-title">Spike 角色站位</div>
+                                    <div id="ue5SpikeEditor" class="ue5-spike-editor"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 视频编辑页 -->
+            <section id="tab-video-editor" class="tab-content">
+                <div class="page-header">
+                    <h1>视频编辑</h1>
+                    <p class="page-desc">上传视频或导入当前项目拼接成片，对视频内部指定时间段进行二次生成替换</p>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="编辑参数" data-output-title="视频预览">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('video-editor', false, { manual: true })">
+                        <strong data-workflow-rail-title>编辑参数</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>替换设置</strong>
+                                <span>载入视频后可收起，右侧保留预览与确认结果。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('video-editor')">收起输入</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>🎞️ 编辑源视频</h3>
+                                <span class="badge">独立功能</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>上传待编辑视频</label>
+                                    <input type="file" id="videoEditorUpload" accept="video/*">
+                                </div>
+                                <div class="segment-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="uploadVideoEditorSource()">上传并载入</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="importMergedVideoToEditor()">导入当前项目拼接成片</button>
+                                </div>
+                                <div id="videoEditorSourceInfo" class="local-path">尚未载入视频</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3>✂️ 时间段替换</h3></div>
+                            <div class="card-body">
+                                <div class="video-range-repair-grid">
+                                    <label>开始秒<input type="number" id="videoEditorStart" min="0" step="0.1" placeholder="例如 4.0"></label>
+                                    <label>结束秒<input type="number" id="videoEditorEnd" min="0" step="0.1" placeholder="例如 7.0"></label>
+                                </div>
+                                <div id="videoEditorPrompt" class="segment-editor mention-editor" data-rows="6" data-placeholder="描述这段小片段需要如何修改，输入 @ 引用素材或提示词库；可继续描述：人物表情更惊讶、镜头更近、动作改为转身后退等。"></div>
+                                <div class="mention-preview-row">
+                                    <button type="button" class="btn btn-sm btn-secondary mention-insert-btn" onclick="openMentionPickerForVideoEditor()">@ 插入</button>
+                                    <span class="mention-preview-hint">在描述里直接打 @，可选择素材或提示词库；素材会作为这次视频编辑参考图，提示词库会作为附加修改要求</span>
+                                </div>
+                                <div class="form-group" style="margin-top:12px;">
+                                    <label>额外上传临时参考图（可选）</label>
+                                    <input type="file" id="videoEditorReferenceFiles" accept="image/*" multiple onchange="onVideoEditorReferenceFilesChange()">
+                                    <div id="videoEditorReferenceFileCount" class="field-hint">0张 · 临时上传的参考图会和上面 @ 到的素材一起发给视频模型</div>
+                                </div>
+                                <button class="btn btn-primary btn-lg" onclick="submitStandaloneVideoEdit()">提交视频编辑</button>
+                                <div id="videoEditorStatus" class="local-path"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('video-editor', false, { manual: true })">
+                        <strong data-workflow-output-title>视频预览</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div class="card">
+                            <div class="card-header"><h3>👀 视频预览</h3></div>
+                            <div class="card-body">
+                                <div id="videoEditorPreview" class="video-editor-preview empty-state"><p>上传或导入视频后将在这里预览</p></div>
+                                <div id="videoEditorUndoPanel" class="video-editor-undo-panel hidden"></div>
+                                <div id="videoEditorPendingResult" class="video-editor-confirm-panel hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 分镜生成页 -->
+            <section id="tab-storyboard" class="tab-content">
+                <div class="page-header page-hero optional-page-hero">
+                    <div>
+                        <span class="eyebrow">可选增强</span>
+                        <h1>分镜辅助</h1>
+                        <p class="page-desc">需要更稳定的站位、空间关系和构图时，再独立生成分镜提示词与图片。</p>
+                    </div>
+                </div>
+                <div class="script-layout adaptive-workflow output-collapsed" data-collapsed-title="分镜输入" data-output-title="分镜结果">
+                    <button type="button" class="workflow-collapsed-rail" onclick="setWorkflowInputCollapsed('storyboard', false, { manual: true })">
+                        <strong data-workflow-rail-title>分镜输入</strong>
+                        <span data-workflow-rail-action>展开输入区</span>
+                    </button>
+                    <div class="script-input-area">
+                        <div class="pane-utility">
+                            <div>
+                                <strong>分镜输入与素材</strong>
+                                <span>生成后可收起，右侧批量管理分镜资产。</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" data-workflow-toggle onclick="toggleWorkflowInput('storyboard')">收起输入</button>
+                        </div>
+                        <div class="card storyboard-mode-card">
+                            <div class="card-header">
+                                <h3>📝 分镜剧本输入</h3>
+                                <span class="badge">可选辅助</span>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="storyboardScriptInput" placeholder="在此粘贴需要生成分镜图的剧本或视频台本。建议包含角色、场景、动作、对白、道具和镜头顺序。" rows="14"></textarea>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>🎯 分镜关联素材</h3>
+                                <span class="badge">可选</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="select-group">
+                                    <label>选择场景</label>
+                                    <div id="storyboardSceneSelect" class="chip-select"></div>
+                                </div>
+                                <div class="select-group">
+                                    <label>选择人物</label>
+                                    <div id="storyboardCharSelect" class="chip-select"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card storyboard-mode-card">
+                            <div class="card-header">
+                                <h3>🖼️ 分镜生成参数</h3>
+                                <span class="badge">GPT Image 2</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>分镜图画幅比例</label>
+                                    <select id="storyboardPageRatioSelect">
+                                        <option value="16:9">16:9 横屏</option>
+                                        <option value="9:16">9:16 竖屏</option>
+                                        <option value="1:1">1:1 方图</option>
+                                        <option value="4:3">4:3</option>
+                                        <option value="3:4">3:4</option>
+                                        <option value="21:9">21:9 电影宽银幕</option>
+                                    </select>
+                                </div>
+                                <div class="storyboard-mode-tips">
+                                    <div>• 该页面只负责独立生成分镜提示词和分镜图片，不直接生成视频。</div>
+                                    <div>• 分镜生成使用设置页中的独立 Key、Base URL、文字模型和图片模型。</div>
+                                    <div>• 主线制片流水线已默认使用分镜图驱动；这里作为独立分镜资产和高级修补入口保留。</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="btnStoryboardProcess" class="btn btn-primary btn-lg" onclick="processStoryboardOnly()">
+                            <span class="btn-icon">🖼️</span> 生成分镜提示词
+                        </button>
+                    </div>
+                    <button type="button" class="workflow-output-rail" data-workflow-output-rail onclick="setWorkflowOutputCollapsed('storyboard', false, { manual: true })">
+                        <strong data-workflow-output-title>分镜结果</strong>
+                        <span data-workflow-output-action>等待输出</span>
+                    </button>
+                    <div class="script-result-area">
+                        <div id="storyboardOnlyPlaceholderCard" class="card">
+                            <div class="card-header"><h3>🖼️ 分镜生成结果</h3></div>
+                            <div class="card-body">
+                                <div class="result-placeholder">
+                                    <div class="placeholder-icon">🖼️</div>
+                                    <p>分镜提示词和图片将在这里显示</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="storyboardOnlyPanel" class="card hidden">
+                            <div class="card-header">
+                                <h3>📋 分镜资产列表</h3>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <span id="storyboardOnlyCount" class="badge">0个分镜</span>
+                                    <button class="btn btn-sm btn-secondary" onclick="generateAllStoryboardPrompts()">全部生成故事板提示词</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="generateAllStoryboardImages()">全部生成图片</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="storyboardOnlyList" class="segments-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 场景库页 -->
+            <section id="tab-scenes" class="tab-content">
+                <div class="page-header resource-page-header">
+                    <div class="resource-header-main">
+                        <h1>场景库</h1>
+                        <p class="page-desc">管理可用的场景素材，上传场景参考图</p>
+                    </div>
+                    <div class="resource-header-actions">
+                        <button class="btn btn-primary" onclick="showSceneModal()">
+                            <span class="btn-icon">+</span> 添加场景
+                        </button>
+                    </div>
+                </div>
+                <div id="sceneGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 人物库页 -->
+            <section id="tab-characters" class="tab-content">
+                <div class="page-header resource-page-header">
+                    <div class="resource-header-main">
+                        <h1>人物库</h1>
+                        <p class="page-desc">管理角色设定，上传角色参考图，配置音色描述</p>
+                    </div>
+                    <div class="resource-header-actions">
+                        <button class="btn btn-primary" onclick="showCharModal()">
+                            <span class="btn-icon">+</span> 添加人物
+                        </button>
+                    </div>
+                </div>
+                <div id="charGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 资产库页 -->
+            <section id="tab-assets" class="tab-content">
+                <div class="page-header page-hero">
+                    <div>
+                        <span class="eyebrow">资产浏览</span>
+                        <h1>资产库</h1>
+                        <p class="page-desc">统一查看视频、角色图、场景图、临时参考图和分镜图。</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadAssets()">
+                        <span class="btn-icon">↻</span> 刷新资产
+                    </button>
+                </div>
+                <div class="browser-toolbar">
+                    <label class="search-field">
+                        <span>搜索资产</span>
+                        <input id="assetSearchInput" type="text" placeholder="名称、路径或类型" oninput="setAssetQuery(this.value)">
+                    </label>
+                    <div class="segmented-control" aria-label="资产类型">
+                        <button type="button" data-asset-filter="all" class="active" onclick="setAssetFilter('all')">全部</button>
+                        <button type="button" data-asset-filter="video" onclick="setAssetFilter('video')">视频</button>
+                        <button type="button" data-asset-filter="storyboard" onclick="setAssetFilter('storyboard')">分镜</button>
+                        <button type="button" data-asset-filter="character" onclick="setAssetFilter('character')">人物</button>
+                        <button type="button" data-asset-filter="scene" onclick="setAssetFilter('scene')">场景</button>
+                    </div>
+                    <div class="segmented-control density-control" aria-label="显示密度">
+                        <button type="button" data-asset-density="comfortable" class="active" onclick="setAssetDensity('comfortable')">网格</button>
+                        <button type="button" data-asset-density="compact" onclick="setAssetDensity('compact')">紧凑</button>
+                    </div>
+                    <span id="assetBrowserCount" class="badge">0项</span>
+                </div>
+                <div id="assetGrid" class="resource-grid"></div>
+            </section>
+
+            <!-- 提示词库页 -->
+            <section id="tab-prompt-library" class="tab-content">
+                <div class="page-header page-hero">
+                    <div>
+                        <span class="eyebrow">可复用模板</span>
+                        <h1>提示词库</h1>
+                        <p class="page-desc">管理可在剧本和额外要求中用 @标题 引用的附加提示词。</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="showPromptLibraryModal()">
+                        <span class="btn-icon">+</span> 新建提示词
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>💬 可引用提示词</h3>
+                            <small class="field-hint">在“输入剧本”或“额外要求”里输入 @标题，例如 @第一人称；提交给 AI 时会自动附加对应内容和可选图片。</small>
+                        </div>
+                        <span id="promptLibraryCount" class="badge">0条</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="browser-toolbar prompt-browser-toolbar">
+                            <label class="search-field">
+                                <span>搜索提示词</span>
+                                <input id="promptLibrarySearchInput" type="text" placeholder="标题或内容" oninput="setPromptLibraryQuery(this.value)">
+                            </label>
+                            <div class="segmented-control density-control" aria-label="显示密度">
+                                <button type="button" data-prompt-density="comfortable" class="active" onclick="setPromptLibraryDensity('comfortable')">卡片</button>
+                                <button type="button" data-prompt-density="compact" onclick="setPromptLibraryDensity('compact')">列表</button>
+                            </div>
+                        </div>
+                        <div id="promptLibraryGrid" class="prompt-library-grid"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 项目管理页 -->
+            <section id="tab-projects" class="tab-content">
+                <div class="page-header">
+                    <h1>项目管理</h1>
+                    <p class="page-desc">查看历史项目和视频生成状态，也可以先新建空项目再开始写剧本</p>
+                    <button class="btn btn-primary" onclick="showProjectModal()">
+                        <span class="btn-icon">+</span> 新建项目
+                    </button>
+                </div>
+                <div id="projectList" class="project-list"></div>
+            </section>
+
+            <!-- 3D截图参考页 -->
+            <section id="tab-reference-3d" class="tab-content">
+                <div class="page-header">
+                    <h1>3D截图参考</h1>
+                    <p class="page-desc">导入图片平面、3D模型和布景盒贴图，在 3D 空间中搭出假的场景透视后导出给 AI 使用的分镜参考截图。</p>
+                </div>
+                <div class="reference-3d-layout">
+                    <div class="reference-3d-stage card">
+                        <div class="card-header reference-3d-toolbar">
+                            <div>
+                                <h3>🧊 3D 场景</h3>
+                                <small class="field-hint">固定场景自由摄影机：布景盒、网格和物体都保持在世界坐标；右键拖动转向，右键按住时用 W/A/S/D 移动相机，Q/E 下降/上升，滚轮沿视线前进/后退，Shift 加速；左键点击选中角色或物体。</small>
+                            </div>
+                            <div class="reference-3d-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="focusReference3DAll()">查看全场</button>
+                                <button class="btn btn-sm btn-secondary" onclick="focusReference3DSelected()">聚焦选中</button>
+                                <button class="btn btn-sm btn-secondary" onclick="resetReference3DCamera()">重置视角</button>
+                                <button class="btn btn-sm btn-primary" onclick="captureReference3DShot()">📸 导出截图</button>
+                            </div>
+                        </div>
+                        <div class="reference-3d-canvas-wrap">
+                            <canvas id="reference3DCanvas"></canvas>
+                            <div id="reference3DHint" class="reference-3d-hint">打开本页后会自动加载 3D 引擎</div>
+                        </div>
+                    </div>
+                    <aside class="reference-3d-panel">
+                        <div class="card">
+                            <div class="card-header"><h3>➕ 导入素材</h3></div>
+                            <div class="card-body reference-3d-imports">
+                                <div class="reference-3d-toggle-row" style="margin-bottom:10px">
+                                    <button type="button" class="btn btn-sm btn-primary" data-reference3d-backdrop-mode="box" onclick="setReference3DBackdropMode('box')">方形布景盒</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-reference3d-backdrop-mode="curved" onclick="setReference3DBackdropMode('curved')">圆弧布景</button>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="addReference3DPersonBox()">添加UE5灰模小人</button>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DModelInput')">导入 GLB/GLTF 模型</button>
+                                <input id="reference3DModelInput" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" multiple onchange="addReference3DModels(this.files); this.value=''">
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DBackgroundInput')">单张背景图</button>
+                                <input id="reference3DBackgroundInput" type="file" accept="image/*" onchange="setReference3DSingleBackground(this.files?.[0]); this.value=''">
+                                <div class="reference-3d-skybox-slots">
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="0" onclick="triggerReference3DFileInput('reference3DSkyboxRight')"><img id="reference3DSkyboxPreview0" class="hidden" alt="右 +X 预览"><span>右 +X</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="1" onclick="triggerReference3DFileInput('reference3DSkyboxLeft')"><img id="reference3DSkyboxPreview1" class="hidden" alt="左 -X 预览"><span>左 -X</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="2" onclick="triggerReference3DFileInput('reference3DSkyboxTop')"><img id="reference3DSkyboxPreview2" class="hidden" alt="上 +Y 预览"><span>上 +Y</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="3" onclick="triggerReference3DFileInput('reference3DSkyboxBottom')"><img id="reference3DSkyboxPreview3" class="hidden" alt="下 -Y 预览"><span>下 -Y</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="4" onclick="triggerReference3DFileInput('reference3DSkyboxFront')"><img id="reference3DSkyboxPreview4" class="hidden" alt="前 +Z 预览"><span>前 +Z</span></button>
+                                    <button type="button" class="reference-3d-skybox-slot btn btn-sm btn-secondary" data-skybox-slot="5" onclick="triggerReference3DFileInput('reference3DSkyboxBack')"><img id="reference3DSkyboxPreview5" class="hidden" alt="后 -Z 预览"><span>后 -Z</span></button>
+                                </div>
+                                <input id="reference3DSkyboxRight" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(0, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxLeft" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(1, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxTop" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(2, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxBottom" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(3, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxFront" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(4, this.files?.[0]); this.value=''">
+                                <input id="reference3DSkyboxBack" type="file" accept="image/*" onchange="setReference3DSkyboxSlot(5, this.files?.[0]); this.value=''">
+                                <small id="reference3DSkyboxStatus" class="field-hint">可在方形布景盒与圆弧布景之间切换；至少上传前/左/右/下 4 面即可搭出可截图的假 3D 场景。</small>
+                                <button type="button" class="btn btn-secondary btn-block" onclick="triggerReference3DFileInput('reference3DGroundInput')">地面贴图</button>
+                                <input id="reference3DGroundInput" type="file" accept="image/*" onchange="setReference3DGroundTexture(this.files?.[0]); this.value=''">
+                                <div class="reference-3d-toggle-row">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReference3DGround()">显示/隐藏地面</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleReference3DGrid()">显示/隐藏网格</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>📥 AI摄影数据导入</h3>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="reference3DControlDataInput" rows="8" placeholder="粘贴单分镜模式输出的 ===CONTROL_DATA_START=== JSON 块，或直接粘贴控制JSON。"></textarea>
+                                <button type="button" class="btn btn-primary btn-block" onclick="importReference3DControlDataFromTextarea()">导入角色与摄像机角度</button>
+                                <small class="field-hint">导入后会清空当前3D角色/物体，并按JSON生成角色站位、角度和摄像机视角。</small>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>🎥 摄影机参数</h3>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="resetReference3DCamera()">重置</button>
+                            </div>
+                            <div class="card-body reference-3d-controls">
+                                <div class="reference-3d-vector-grid">
+                                    <label>Loc X<input id="reference3DCamPosX" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Loc Y<input id="reference3DCamPosY" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Loc Z<input id="reference3DCamPosZ" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot X<input id="reference3DCamRotX" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot Y<input id="reference3DCamRotY" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>Rot Z<input id="reference3DCamRotZ" type="number" step="0.1" onchange="applyReference3DCameraInputs()"></label>
+                                    <label>FOV<input id="reference3DCamFov" type="number" step="0.1" min="5" max="170" onchange="applyReference3DCameraInputs()"></label>
+                                </div>
+                                <div class="reference-3d-toggle-row" style="margin-top:10px">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="syncReference3DCameraInputs()">读取当前视角</button>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="writeReference3DCameraToUe5Json()">回写UE JSON</button>
+                                </div>
+                                <small id="reference3DCameraStatus" class="field-hint">从导入引擎镜头进入时，可在这里微调视角并回写到当前关键帧。</small>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>🎯 选中物体</h3>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                    <button class="btn btn-sm btn-secondary" onclick="groundReference3DSelected()">贴地</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="deleteReference3DSelected()">删除</button>
+                                </div>
+                            </div>
+                            <div class="card-body reference-3d-controls">
+                                <div class="form-group">
+                                    <label>名称</label>
+                                    <input id="reference3DName" type="text" placeholder="未选中物体" onchange="renameReference3DSelected(this.value)">
+                                </div>
+                                <div class="reference-3d-vector-grid">
+                                    <label>X<input id="reference3DPosX" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>Y<input id="reference3DPosY" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>Z<input id="reference3DPosZ" type="number" step="0.1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>旋X<input id="reference3DRotX" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>旋Y<input id="reference3DRotY" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>旋Z<input id="reference3DRotZ" type="number" step="1" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缩X<input id="reference3DScaleX" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缩Y<input id="reference3DScaleY" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                    <label>缩Z<input id="reference3DScaleZ" type="number" step="0.1" min="0.01" onchange="updateReference3DSelectedTransform()"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>📦 场景物体</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="clearReference3DScene()">清空</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="reference3DObjectList" class="reference-3d-object-list">
+                                    <div class="empty-state"><p>暂无物体，请先导入图片或模型。</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- 模式管理页 -->
+            <section id="tab-director-modes" class="tab-content">
+                <div class="page-header">
+                    <h1>模式管理</h1>
+                    <p class="page-desc">统一管理生成 Video Prompt 和视频时使用的编导/模式提示词。</p>
+                </div>
+                <div class="mode-management-layout">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>🎬 视频模式</h3>
+                                <small class="field-hint">管理生成 Video Prompt 和视频时使用的编导提示词，例如 dialogue、cutscene、短剧、广告片。未输入密码时仅脱敏查看/编辑，不影响制片流水线正常选择使用。</small>
+                            </div>
+                            <button class="btn btn-secondary" onclick="unlockDirectorModes()">
+                                <span class="btn-icon">🔐</span> 输入密码查看/编辑
+                            </button>
+                            <button class="btn btn-primary" onclick="showDirectorModeModal()">
+                                <span class="btn-icon">+</span> 新建视频模式
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="directorModeGrid" class="director-mode-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 设置页 -->
+            <section id="tab-settings" class="tab-content">
+                <div class="page-header">
+                    <h1>设置</h1>
+                    <p class="page-desc">配置API密钥和服务参数</p>
+                </div>
+                <div class="settings-form">
+                    <div class="card">
+                        <div class="card-header"><h3>🤖 OpenAI 配置</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>API Key</label>
+                                <input type="password" id="settingOpenaiKey" placeholder="sk-...">
+                            </div>
+                            <div class="form-group">
+                                <label>Base URL</label>
+                                <input type="text" id="settingOpenaiBase" placeholder="https://gateway.ai.levelinfinite.com">
+                            </div>
+                            <div class="form-group">
+                                <label>模型</label>
+                                <input type="text" id="settingOpenaiModel" placeholder="gpt-5.5">
+                            </div>
+                            <div class="form-group">
+                                <label>推理强度</label>
+                                <select id="settingOpenaiReasoningEffort">
+                                    <option value="xhigh">极高 xhigh</option>
+                                    <option value="high">高级 high</option>
+                                    <option value="medium">中级 medium</option>
+                                    <option value="low">低级 low</option>
+                                    <option value="minimal">极低 minimal</option>
+                                    <option value="none">关闭 none</option>
+                                    <option value="default">默认 default</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card hidden">
+                        <div class="card-header"><h3>🧩 剧本处理提示词</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>剧本拆解系统提示词</label>
+                                <textarea id="settingScriptBreakdownPrompt" rows="16" placeholder="输入用于 /api/breakdown-script 的剧本拆解系统提示词"></textarea>
+                                <small class="field-hint">该提示词会写入 SCRIPT_BREAKDOWN_PROMPT，用于“剧本拆解”步骤。建议明确按场景/时空拆段、保留对白、输出空间关系、首帧锚定依据、尾帧衔接依据和连续性备注。</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card hidden">
+                        <div class="card-header"><h3>🖼️ 分镜处理提示词</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>故事板/分镜图提示词人设</label>
+                                <textarea id="settingStoryboardSystemPrompt" rows="16" placeholder="输入用于生成故事板图提示词的系统人设"></textarea>
+                                <small class="field-hint">当前故事板提示词人设已改为程序内置，此处仅保留历史设置显示，不再影响“一键生成故事板提示词”。</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🖼️ 分镜生成配置</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>分镜生成 API Key</label>
+                                <input type="password" id="settingStoryboardOpenaiKey" placeholder="分镜生成专用 API Key，留空则不修改">
+                            </div>
+                            <div class="form-group">
+                                <label>分镜生成 Base URL</label>
+                                <input type="text" id="settingStoryboardOpenaiBase" placeholder="https://gateway.ai.levelinfinite.com">
+                            </div>
+                            <div class="form-group">
+                                <label>图片处理模型</label>
+                                <input type="text" id="settingStoryboardGptImageModel" placeholder="gpt-image-2" value="gpt-image-2">
+                                <small class="field-hint">仅用于分镜生成页生成静态分镜资产图；文字处理统一使用上方 OpenAI 配置中的模型。</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🎬 Seedance 视频生成配置</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>生成接口模式</label>
+                                <select id="settingJimengProvider" onchange="handleJimengProviderChange()">
+                                    <option value="platform">平台兼容（保留现有模式）</option>
+                                    <option value="volcengine">火山引擎方舟直达</option>
+                                </select>
+                                <small class="field-hint">平台兼容会继续使用下方 JIMENG_* 配置；火山引擎直达会按官方 Ark SDK 示例调用 content_generation.tasks.create。</small>
+                            </div>
+                            <div id="settingJimengPlatformFields">
+                                <div class="form-group">
+                                    <label>平台兼容 API Key</label>
+                                    <input type="password" id="settingJimengKey" placeholder="平台兼容 API Key">
+                                </div>
+                                <div class="form-group">
+                                    <label>平台兼容 Base URL</label>
+                                    <input type="text" id="settingJimengBase" placeholder="https://ark.cn-beijing.volces.com/api/v3" value="https://ark.cn-beijing.volces.com/api/v3">
+                                    <small class="field-hint">仅用于“平台兼容”模式，现有逻辑完全保留；如使用代理或兼容服务，可在这里修改。</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>平台兼容模型</label>
+                                    <input type="text" id="settingJimengModel" placeholder="volcengine/doubao-seedance-2-0-260128" value="volcengine/doubao-seedance-2-0-260128">
+                                    <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block">可选: volcengine/doubao-seedance-2-0-260128 / doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128 / doubao-seedance-1-0-pro-250528</small>
+                                </div>
+                            </div>
+                            <div id="settingJimengVolcengineFields">
+                                <div class="form-group">
+                                    <label>火山引擎直达 API Key</label>
+                                    <input type="password" id="settingArkKey" placeholder="ARK_API_KEY；留空则复用平台兼容 API Key">
+                                </div>
+                                <div class="form-group">
+                                    <label>火山引擎直达 Base URL</label>
+                                    <input type="text" id="settingArkBase" placeholder="留空使用 Ark SDK 默认地址">
+                                    <small class="field-hint">通常留空即可；只有需要代理或私有网关时再填写。</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>火山引擎直达模型</label>
+                                    <input type="text" id="settingArkSeedanceModel" placeholder="doubao-seedance-2-0-260128" value="doubao-seedance-2-0-260128">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🎨 界面背景</h3></div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>背景图片</label>
+                                <div class="ui-background-setting">
+                                    <label class="ui-background-upload btn btn-secondary">
+                                        <span class="btn-icon">🖼️</span> 选择图片
+                                        <input type="file" id="settingUiBackgroundImage" accept="image/*" onchange="setUIBackgroundImage(this)">
+                                    </label>
+                                    <button id="btnRemoveUiBackground" type="button" class="btn btn-danger" onclick="removeUIBackgroundImage()">移除背景</button>
+                                </div>
+                                <small class="field-hint">图片会保存在当前浏览器本地，并自动进行加暗、模糊和遮罩处理，避免降低文字与按钮可视度。</small>
+                                <img id="settingUiBackgroundPreview" class="ui-background-preview hidden" alt="当前背景预览">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>📦 数据迁移</h3></div>
+                        <div class="card-body">
+                            <p class="field-hint">导出或导入数据库、API 设置和 uploads 目录中的素材/视频，用于更新版本时保留原有项目数据。</p>
+                            <input type="file" id="dataImportFile" accept=".zip,application/zip" class="hidden" onchange="importProjectData(this)">
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+                                <button type="button" class="btn btn-secondary" onclick="exportProjectData()">
+                                    <span class="btn-icon">⬇️</span> 导出全部数据
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('dataImportFile').click()">
+                                    <span class="btn-icon">⬆️</span> 导入数据备份
+                                </button>
+                            </div>
+                            <div class="local-path">旧版本可运行项目根目录中的“导出旧版本数据.py”，生成 zip 后在这里导入。</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🎞️ FFmpeg 视频拼接依赖</h3>
+                            <span id="ffmpegStatus" class="badge">检测中...</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="field-hint">一键拼接需要 FFmpeg。可使用系统已安装的 FFmpeg，也可点击下方按钮安装 Python 内置依赖 imageio-ffmpeg。</p>
+                            <div id="ffmpegPath" class="local-path">当前路径：检测中...</div>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+                                <button class="btn btn-secondary" onclick="checkFFmpegStatus()">
+                                    <span class="btn-icon">🔍</span> 检测 FFmpeg
+                                </button>
+                                <button class="btn btn-primary" onclick="installFFmpegDependency()">
+                                    <span class="btn-icon">⬇️</span> 安装 FFmpeg 依赖
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap">
+                        <button class="btn btn-primary btn-lg" onclick="saveSettings()" style="flex:1">
+                            <span class="btn-icon">💾</span> 保存设置
+                        </button>
+                        <button class="btn btn-success btn-lg" onclick="testOpenAI()" style="flex:1">
+                            <span class="btn-icon">🔌</span> 测试AI连接
+                        </button>
+                    </div>
+                    <div id="testResult" class="card hidden" style="margin-top:16px">
+                        <div class="card-header"><h3>🧪 测试结果</h3></div>
+                        <div class="card-body">
+                            <pre id="testResultContent" style="white-space:pre-wrap;font-size:13px;line-height:1.6"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 场景添加弹窗 -->
+    <div id="sceneModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('sceneModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="sceneModalTitle">添加场景</h3>
+                <button class="modal-close" onclick="closeModal('sceneModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="sceneEditId">
+                <div class="form-group">
+                    <label>场景名称 *</label>
+                    <input type="text" id="sceneName" placeholder="例如：宗门大殿">
+                </div>
+                <div class="form-group">
+                    <label>场景描述</label>
+                    <textarea id="sceneDesc" rows="3" placeholder="描述场景的环境、氛围等"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>场景参考图</label>
+                    <div class="upload-area" id="sceneUpload">
+                        <input type="file" id="sceneImage" accept="image/*" onchange="previewImage(this, 'scenePreview')">
+                        <div class="upload-placeholder" id="sceneUploadPlaceholder">
+                            <span>📷</span>
+                            <p>点击或拖拽上传图片</p>
+                        </div>
+                        <img id="scenePreview" class="upload-preview hidden" alt="预览">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('sceneModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveScene()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 人物添加弹窗 -->
+    <div id="charModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('charModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="charModalTitle">添加人物</h3>
+                <button class="modal-close" onclick="closeModal('charModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="charEditId">
+                <div class="form-group">
+                    <label>人物名称 *</label>
+                    <input type="text" id="charName" placeholder="例如：时运">
+                </div>
+                <div class="form-group">
+                    <label>人物描述</label>
+                    <textarea id="charDesc" rows="3" placeholder="描述角色的外貌、性格等"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>音色描述</label>
+                    <textarea id="charVoice" rows="2" placeholder="描述角色的声音特征"></textarea>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-secondary btn-sm" id="generateCharVoiceBtn" onclick="generateCharVoice()">✨ 一键生成声线</button>
+                        <span class="field-hint">会使用当前人物描述和角色参考图，复用设置页 OpenAI 模型配置。</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateCharTurnaround(document.getElementById('charEditId').value)">🎨 一键生成人设三视图</button>
+                        <span class="field-hint">保存人物后可使用，会将人物描述提交给AI生图并设为角色参考图。</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>角色参考图</label>
+                    <div class="upload-area" id="charUpload">
+                        <input type="file" id="charImage" accept="image/*" onchange="previewImage(this, 'charPreview')">
+                        <div class="upload-placeholder" id="charUploadPlaceholder">
+                            <span>📷</span>
+                            <p>点击或拖拽上传图片</p>
+                        </div>
+                        <img id="charPreview" class="upload-preview hidden" alt="预览">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('charModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveCharacter()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目创建弹窗 -->
+    <div id="projectModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('projectModal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新建项目</h3>
+                <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>项目名称 *</label>
+                    <input type="text" id="projectName" placeholder="例如：第1集开场短片">
+                </div>
+                <div class="form-group">
+                    <label>初始剧本</label>
+                    <textarea id="projectScript" rows="8" placeholder="可选：先粘贴项目剧本，创建后会自动带入视频生成页"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('projectModal')">取消</button>
+                <button class="btn btn-primary" onclick="createProject()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频模式弹窗 -->
+    <div id="directorModeModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('directorModeModal')"></div>
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3 id="directorModeModalTitle">新建视频模式</h3>
+                <button class="modal-close" onclick="closeModal('directorModeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="directorModeEditId">
+                <div class="form-group">
+                    <label>模式名称 *</label>
+                    <input type="text" id="directorModeName" placeholder="例如：dialogue编导">
+                </div>
+                <div class="form-group">
+                    <label>模式标识</label>
+                    <input type="text" id="directorModeKey" placeholder="例如：dialogue / cutscene / custom">
+                </div>
+                <div class="form-group">
+                    <label>视频模式提示词 *</label>
+                    <textarea id="directorModePrompt" rows="18" placeholder="输入这个视频模式的完整系统提示词"></textarea>
+                </div>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="directorModeDefault">
+                    <span>设为默认模式</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('directorModeModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveDirectorMode()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示词库弹窗 -->
+    <div id="promptLibraryModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('promptLibraryModal')"></div>
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3 id="promptLibraryModalTitle">新建提示词</h3>
+                <button class="modal-close" onclick="closeModal('promptLibraryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="promptLibraryEditId">
+                <label class="checkbox-row prompt-clear-image-row hidden" id="promptLibraryClearImageRow">
+                    <input type="checkbox" id="promptLibraryClearImage">
+                    <span>移除现有图片</span>
+                </label>
+                <div class="form-group">
+                    <label>标题 *</label>
+                    <input type="text" id="promptLibraryTitle" placeholder="例如：第一人称">
+                    <small class="field-hint">标题就是 @ 引用名，请尽量短而明确。</small>
+                </div>
+                <div class="form-group">
+                    <label>内容 *</label>
+                    <textarea id="promptLibraryContent" rows="12" placeholder="输入会随 @标题 一起上传给 AI 的镜头指导、风格要求或处理规则"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>图片（可选）</label>
+                    <div class="upload-area" id="promptLibraryUpload">
+                        <input type="file" id="promptLibraryImage" accept="image/*" onchange="previewImage(this, 'promptLibraryPreview')">
+                        <div class="upload-placeholder" id="promptLibraryUploadPlaceholder">
+                            <span>📷</span>
+                            <p>点击或拖拽上传提示词参考图</p>
+                        </div>
+                        <img id="promptLibraryPreview" class="upload-preview hidden" alt="预览">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('promptLibraryModal')">取消</button>
+                <button class="btn btn-primary" onclick="savePromptLibraryItem()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 版本公告弹窗 -->
+    <div id="versionAnnouncementModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal('versionAnnouncementModal')"></div>
+        <div class="modal-content version-modal-content">
+            <div class="modal-header">
+                <h3 id="versionAnnouncementTitle">版本更新公告</h3>
+                <button class="modal-close" onclick="closeModal('versionAnnouncementModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="versionAnnouncementContent" class="version-announcement-content">正在加载公告...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('versionAnnouncementModal')">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-panel">
+            <div class="spinner"></div>
+            <p id="loadingText">AI正在处理中...</p>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-info">
+                <span id="progressPercent">0%</span>
+                <span id="progressTime">已用时 0秒</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+    }
+    </script>
+    <script>
+        document.write('<script src="' + (location.protocol === 'file:' ? './app.js' : '/static/app.js') + '?v=20260624-2018-restore01"><\/script>');
+    </script>
+</body>
+</html>
