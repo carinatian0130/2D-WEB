@@ -2486,9 +2486,7 @@ async function requestPipelineText(script, instruction, progressKey = '', progre
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            project_id: '',
-            transient: true,
-            no_persist: true,
+            project_id: currentProject || '',
             script,
             instruction
         })
@@ -4462,10 +4460,7 @@ function sanitizeSegmentSourceText(text = '', seg = null) {
 }
 
 function sanitizeScriptInputDisplayText(text = '') {
-    let value = String(text || '');
-    const segmentMatch = value.match(/分段原文[:：]\s*([\s\S]*?)(?:\n\s*剧本详细版[:：]|$)/);
-    if (segmentMatch) value = segmentMatch[1] || value;
-    return value
+    return String(text || '')
         .split(/\n\s*===SCRIPT_SPLIT===\s*\n/)
         .map(part => part.trim())
         .filter(Boolean)
@@ -5640,6 +5635,14 @@ function sanitizeImagePromptForVideoPrompt(imagePrompt = '') {
 
 function sanitizeGeneratedVideoPrompt(text = '') {
     return String(text || '')
+        .replace(/干净高调黑白灰阶[，,、]?/g, '')
+        .replace(/黑白铅笔(?:分镜)?[，,、]?/g, '')
+        .replace(/明亮灰白底[，,、]?/g, '')
+        .replace(/单色石墨(?:线稿|草图)?[^\n，。；;,.]*[，,、]?/g, '')
+        .replace(/手绘线稿[，,、]?/g, '')
+        .replace(/灰阶明暗[，,、]?/g, '')
+        .replace(/分镜表[，,、]?/g, '')
+        .replace(/格线、箭头、编号/g, '字幕、对白框、说明文字')
         .replace(/\s{2,}/g, ' ')
         .trim();
 }
@@ -5656,7 +5659,7 @@ async function loadSeedanceDialogueSkill() {
             '将当前单个分段转换成一个可直接复制给 Seedance 的中文视频提示词。',
             '输出一个完整单段视频提示词，必须包含完整设定块、视频时长、分镜N【X秒】镜头段落。',
             '不要 JSON，不要 Markdown，不要解释，不要重新拆段，不要输出多个片段。',
-            '如果输入包含完整分镜 Prompt 和分镜图 reference photo，必须像 GPT 直接对话一样逐格复刻对应面板并把标注转成自然镜头运动。',
+            '视频不得继承黑白铅笔、灰阶、石墨、线稿、分镜表、格线、箭头、编号、timing marks 等分镜图媒介风格。',
             '人物与场景只使用当前输入的素材 tag 和 char:id / scene:id，不要凭空增加角色或地点。'
         ].join('\n');
     }
@@ -5700,7 +5703,6 @@ function buildVideoStoryboardReferenceLine(imagePath = '') {
 function buildVideoPromptSourceForModel(index, imagePrompt, imagePath, options = {}) {
     const seg = currentSegments[index] || {};
     const backboneText = String(options.backboneText || seg._backboneCompact || '').trim();
-    const fullStoryboardPrompt = String(imagePrompt || seg.storyboard_prompt || '').trim();
     const assetScope = options.assetScope || {};
     const tagLine = buildVideoReferenceTagLine(assetScope);
     const assetMap = buildVideoSkillAssetMap(assetScope);
@@ -5712,15 +5714,13 @@ function buildVideoPromptSourceForModel(index, imagePrompt, imagePath, options =
         tagLine ? `【参考图Tag】\n${tagLine}` : '',
         assetMap ? `【素材映射】\n${assetMap}` : '',
         imagePath ? `【分镜图Reference】\n${buildVideoStoryboardReferenceLine(imagePath)}` : '',
-        fullStoryboardPrompt ? `【完整分镜 Prompt｜视频主输入】\n${fullStoryboardPrompt}` : '',
         backboneText ? `【script-backbone-compact｜唯一剧情输入】\n${backboneText}` : '',
         '【分镜图 / 首帧锚定图】',
         imagePath ? '当前片段已有分镜图，作为 Seedance image-to-video first-frame lock 使用。' : '当前片段尚未生成分镜图。',
         '【硬性边界】',
-        '不要读取或复述当前分段原文；不要读取整段台本；不要重新拆段。',
-        '视频提示词必须像 GPT 直接对话一样同时使用【完整分镜 Prompt｜视频主输入】和【图6】分镜图 reference photo。',
-        '如果完整分镜 Prompt 里有 P01/P02 或 01/02 等面板描述，最终视频提示词必须逐格对应写成“严格复刻上传分镜图第N格”的视频镜头，不要只做松散剧情改编。',
-        '分镜图里的格线、箭头、编号、文字标注、timing marks 只能转译为自然镜头运动和动作，不要让它们作为可见 UI/文字出现在视频画面里。'
+        '不要读取或复述当前分段原文；不要读取或复述分镜图 Prompt；不要读取整段台本；不要重新拆段。',
+        '只根据 script-backbone-compact 与【图6】分镜图 reference photo 生成当前分段的一个视频提示词。',
+        '不要继承黑白、灰阶、铅笔、石墨、线稿、分镜表、格线、箭头、编号、timing marks 等分镜媒介风格。'
     ].filter(Boolean).join('\n\n');
 }
 
@@ -5735,12 +5735,12 @@ async function buildVideoPromptGenerationInstruction(seg, index, assetScope = {}
         '严格按上面的 Seedance 对话视频 skill 输出；这是唯一视频提示词规则，不要混入分镜图 skill、Image Prompt 旧模板、导演模式、页面 fallback 模板或原始全台本。',
         '输出必须是一个完整中文 Seedance 单段视频提示词；不要 JSON，不要 Markdown，不要解释，不要多个方案。',
         '视频时长使用插口里的“目标时长”，完全没有目标时长时才默认 15 秒。',
-        '最终提示词要包含完整设定块、角色锁、视频时长、分镜N【X秒】镜头段落；剧情、角色、道具、动作、逐格镜头设计优先来自【完整分镜 Prompt｜视频主输入】和【图6】分镜图 reference photo，script-backbone-compact 只作为补充剧情校准。',
+        '最终提示词要包含完整设定块、角色锁、视频时长、分镜N【X秒】镜头段落；剧情、角色、道具、动作只来自【script-backbone-compact｜唯一剧情输入】和【图6】分镜图 reference photo。',
         storyboardReferenceLine ? `最终提示词必须保留这个分镜图 reference photo 声明：${storyboardReferenceLine}` : '当前没有分镜图 reference photo，不要假装有【图6】。',
         '如果【参考图Tag】存在，最终提示词第一行保留这些 @char:id / @scene:id tag，供网页链接 reference photo；正文里人物/场景统一写 char:id / scene:id。',
         tagLine ? `当前必须保留的 tag：${tagLine}` : '当前没有明确素材 tag，不要凭空添加人物或场景素材。',
-        '如果完整分镜 Prompt 带有面板编号，必须把每个面板翻译成对应视频分镜段落；可以保留“严格复刻上传分镜图第N格”的约束语言。',
-        '禁止把【script-backbone-compact】原样复制成结果；禁止引用、要求、输出或复述【当前分段原文】，它不会作为视频提示词 input。'
+        '禁止输出或继承：黑白、灰阶、铅笔、石墨、线稿、分镜表、格线、箭头、编号、timing marks、字幕、对白框、UI、logo、水印。',
+        '禁止把【script-backbone-compact】原样复制成结果；禁止引用、要求、输出或复述【当前分段原文】和【分镜图 Prompt】，这两块不会作为视频提示词 input。'
     ].join('\n');
 }
 
@@ -5766,6 +5766,7 @@ function isTargetVideoPromptFormat(prompt = '', segmentText = '', imagePrompt = 
     if (segmentText && text === String(segmentText).trim()) return false;
     if (imagePrompt && text === String(imagePrompt).trim()) return false;
     if (backboneText && text === String(backboneText).trim()) return false;
+    if (/黑白|灰阶|铅笔|石墨|线稿|分镜表|格线|timing marks|面板编号|可见镜头路径箭头/.test(text)) return false;
     return /视频时长|生成一个由|分镜\s*1|分镜1【|Seedance|横版16:9/.test(text);
 }
 
