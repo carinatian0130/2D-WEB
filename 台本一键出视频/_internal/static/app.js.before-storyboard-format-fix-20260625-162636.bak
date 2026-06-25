@@ -3076,7 +3076,7 @@ async function processScript() {
             const backendSegments = currentSegments;
             currentSegments = timedSplitParts.map((part, index) => {
                 const seg = backendSegments[index] || {};
-                const sourceText = (part || getStableSegmentOriginal(seg) || seg.source_script_chunk || seg.prompt_text || seg.prompt || seg._original || '').trim();
+                const sourceText = (part || seg.prompt_text || seg.prompt || seg._original || '').trim();
                 const duration = estimateSegmentDurationSeconds(sourceText);
                 return {
                     ...seg,
@@ -4459,7 +4459,7 @@ function isGeneratedVideoPromptRaw(text = '') {
 }
 
 function getStableSegmentOriginal(seg = null) {
-    const candidates = [seg?._original, seg?.source_script, seg?.source_script_chunk, seg?.original_script, seg?.raw_script, seg?.script_text, seg?.prompt_text, seg?.prompt];
+    const candidates = [seg?._original, seg?.source_script, seg?.prompt_text, seg?.prompt];
     for (const item of candidates) {
         const value = String(item || '').trim();
         if (!value) continue;
@@ -4471,8 +4471,8 @@ function getStableSegmentOriginal(seg = null) {
 
 function sanitizeSegmentSourceText(text = '', seg = null) {
     const value = String(text || '').trim();
+    if (!value) return '';
     const fallback = getStableSegmentOriginal(seg);
-    if (!value) return fallback;
     if (isGeneratedBackboneText(value)) return fallback;
     if (isGeneratedVideoPromptText(value, seg) || isGeneratedVideoPromptRaw(value)) return fallback;
     if (isGeneratedStoryboardPromptText(value)) return fallback;
@@ -4480,13 +4480,16 @@ function sanitizeSegmentSourceText(text = '', seg = null) {
 }
 
 function sanitizeScriptInputDisplayText(text = '') {
-    // 01「台本与素材」是用户原始输入区：刷新/打开项目时只隐藏分段分隔符，不能删改台本内容。
-    // ===SCRIPT_SPLIT=== 不能直接出现在输入框里，否则再次生成时会被当成台词干扰分段。
-    return String(text || '')
-        .replace(new RegExp('\r?\n\s*===SCRIPT_SPLIT===\s*\r?\n', 'g'), '\n\n')
-        .replace(/===SCRIPT_SPLIT===/g, '\n\n')
-        .trim();
+    let value = String(text || '');
+    const segmentMatch = value.match(/分段原文[:：]\s*([\s\S]*?)(?:\n\s*剧本详细版[:：]|$)/);
+    if (segmentMatch) value = segmentMatch[1] || value;
+    return value
+        .split(/\n\s*===SCRIPT_SPLIT===\s*\n/)
+        .map(part => part.trim())
+        .filter(Boolean)
+        .join('\n\n');
 }
+
 function getProtectedSegmentSourcePatch(currentSeg = {}, fallbackSeg = {}) {
     const source = getStableSegmentOriginal(currentSeg) || getStableSegmentOriginal(fallbackSeg) || '';
     if (!source) return {};
@@ -4507,11 +4510,11 @@ function isLegacyStoryboardPrompt(prompt = '') {
 
 function isTargetStoryboardPromptFormat(prompt = '') {
     const value = String(prompt || '').trim();
-    const prefixToken = String.raw`(?:(?:【参考图Tag】\s*)?@(?:char|scene):[A-Za-z0-9_\-]{1,64}(?:=[^\s。]+)?[\s。；;，,、]*|(?:参考图对应|场景名称|场景参考)：[^。]+。)`;
-    const prefix = new RegExp(`^(?:${prefixToken}\\s*)*`);
+    const tagPrefix = String.raw`(?:【参考图Tag】\s*)?(?:@(?:char|scene):[A-Za-z0-9_\-]{1,64}(?:=[^\s。]+)?[\s。；;，,、]*)*`;
+    const referencePrefix = String.raw`(?:(?:参考图对应|场景名称|场景参考)：[^。]+。)*`;
+    const prefix = new RegExp(`^${tagPrefix}\\s*${referencePrefix}\\s*`);
     const body = value.replace(prefix, '');
     return (/^生成单张(四格|六格|九格|十二格)动态分镜表/.test(body)
-        || /^生成单张[^。；；\n]{0,32}(四格|六格|九格|十二格)[^。；；\n]{0,32}动态分镜表/.test(body)
         || /^(黑白铅笔分镜|单色石墨草图|灰阶明暗|生成一张\s*(4|6|9|12|四|六|九|十二)\s*格)/.test(body))
         && /(负面提示|不要静态合照|无字幕)/.test(value)
         && !isLegacyStoryboardPrompt(value);
@@ -5671,7 +5674,7 @@ async function loadSeedanceDialogueSkill() {
             '将当前单个分段转换成一个可直接复制给 Seedance 的中文视频提示词。',
             '输出一个完整单段视频提示词，必须包含完整设定块、视频时长、分镜N【X秒】镜头段落。',
             '不要 JSON，不要 Markdown，不要解释，不要重新拆段，不要输出多个片段。',
-            '如果输入包含完整分镜 Prompt 和分镜图视觉参考，必须像 GPT 直接对话一样参考对应面板并把标注转成自然镜头运动。',
+            '如果输入包含完整分镜 Prompt 和分镜图 reference photo，必须像 GPT 直接对话一样逐格复刻对应面板并把标注转成自然镜头运动。',
             '人物与场景只使用当前输入的素材 tag 和 char:id / scene:id，不要凭空增加角色或地点。'
         ].join('\n');
     }
@@ -5709,7 +5712,7 @@ function buildVideoSkillAssetMap(assetScope = {}) {
 
 function buildVideoStoryboardReferenceLine(imagePath = '') {
     if (!imagePath) return '';
-    return '当前片段已生成的分镜图是视频生成的视觉参考图，只用于参考构图、人物相对站位、镜头角度、主体比例、前中后景、景深、光影节奏和动作方向；不要生成分镜格线、编号、箭头、标注、字幕、对白框或UI。';
+    return '【图6】=当前片段已生成的分镜图 reference photo / storyboard first-frame lock；生成视频时会作为真实首帧锚定图上传。最终视频提示词必须写明：【图6】作为首帧锚定图，视频第一帧严格匹配【图6】中当前片段起始格或对应视觉区域的构图、人物相对站位、镜头角度、主体比例、前中后景、景深和光影节奏；前0.5-1秒保持锁帧构图，再从该首帧自然运动；不要生成分镜格线、编号、箭头、标注、字幕、对白框或UI。';
 }
 
 function buildVideoPromptSourceForModel(index, imagePrompt, imagePath, options = {}) {
@@ -5729,12 +5732,12 @@ function buildVideoPromptSourceForModel(index, imagePrompt, imagePath, options =
         imagePath ? `【分镜图Reference】\n${buildVideoStoryboardReferenceLine(imagePath)}` : '',
         fullStoryboardPrompt ? `【完整分镜 Prompt｜视频主输入】\n${fullStoryboardPrompt}` : '',
         backboneText ? `【script-backbone-compact｜唯一剧情输入】\n${backboneText}` : '',
-        '【分镜图视觉参考】',
-        imagePath ? '当前片段已有分镜图，作为视频生成的视觉参考图使用。' : '当前片段尚未生成分镜图。',
+        '【分镜图 / 首帧锚定图】',
+        imagePath ? '当前片段已有分镜图，作为 Seedance image-to-video first-frame lock 使用。' : '当前片段尚未生成分镜图。',
         '【硬性边界】',
         '不要读取或复述当前分段原文；不要读取整段台本；不要重新拆段。',
-        '视频提示词必须同时使用【完整分镜 Prompt｜视频主输入】和已上传的分镜图视觉参考。',
-        '如果完整分镜 Prompt 里有 P01/P02 或 01/02 等面板描述，最终视频提示词必须参考分镜图里的对应画面生成视频镜头，不要只做松散剧情改编；不要写【图6】这类伪编号。',
+        '视频提示词必须像 GPT 直接对话一样同时使用【完整分镜 Prompt｜视频主输入】和【图6】分镜图 reference photo。',
+        '如果完整分镜 Prompt 里有 P01/P02 或 01/02 等面板描述，最终视频提示词必须逐格对应写成“严格复刻上传分镜图第N格”的视频镜头，不要只做松散剧情改编。',
         '分镜图里的格线、箭头、编号、文字标注、timing marks 只能转译为自然镜头运动和动作，不要让它们作为可见 UI/文字出现在视频画面里。'
     ].filter(Boolean).join('\n\n');
 }
@@ -5750,11 +5753,11 @@ async function buildVideoPromptGenerationInstruction(seg, index, assetScope = {}
         '严格按上面的 Seedance 对话视频 skill 输出；这是唯一视频提示词规则，不要混入分镜图 skill、Image Prompt 旧模板、导演模式、页面 fallback 模板或原始全台本。',
         '输出必须是一个完整中文 Seedance 单段视频提示词；不要 JSON，不要 Markdown，不要解释，不要多个方案。',
         '视频时长使用插口里的“目标时长”，完全没有目标时长时才默认 15 秒。',
-        '最终提示词要包含完整设定块、角色锁、视频时长、分镜N【X秒】镜头段落；剧情、角色、道具、动作、逐格镜头设计优先来自【完整分镜 Prompt｜视频主输入】和分镜图视觉参考，script-backbone-compact 只作为补充剧情校准。',
-        storyboardReferenceLine ? `最终提示词必须保留这个分镜图视觉参考声明：${storyboardReferenceLine}` : '当前没有分镜图视觉参考，不要假装有分镜图。',
-        '如果【参考图Tag】存在，最终提示词第一行保留这些 @char:id / @scene:id tag，供网页链接素材参考图；正文里人物/场景统一写 char:id / scene:id。',
+        '最终提示词要包含完整设定块、角色锁、视频时长、分镜N【X秒】镜头段落；剧情、角色、道具、动作、逐格镜头设计优先来自【完整分镜 Prompt｜视频主输入】和【图6】分镜图 reference photo，script-backbone-compact 只作为补充剧情校准。',
+        storyboardReferenceLine ? `最终提示词必须保留这个分镜图 reference photo 声明：${storyboardReferenceLine}` : '当前没有分镜图 reference photo，不要假装有【图6】。',
+        '如果【参考图Tag】存在，最终提示词第一行保留这些 @char:id / @scene:id tag，供网页链接 reference photo；正文里人物/场景统一写 char:id / scene:id。',
         tagLine ? `当前必须保留的 tag：${tagLine}` : '当前没有明确素材 tag，不要凭空添加人物或场景素材。',
-        '如果完整分镜 Prompt 带有面板编号，必须把每个面板翻译成对应视频分镜段落；分镜图只作为视觉参考，不要求首帧锁定或逐格严格复刻。',
+        '如果完整分镜 Prompt 带有面板编号，必须把每个面板翻译成对应视频分镜段落；可以保留“严格复刻上传分镜图第N格”的约束语言。',
         '禁止把【script-backbone-compact】原样复制成结果；禁止引用、要求、输出或复述【当前分段原文】，它不会作为视频提示词 input。'
     ].join('\n');
 }
@@ -5769,7 +5772,7 @@ function ensureVideoReferenceTags(prompt = '', assetScope = {}, imagePath = '') 
         const missing = tagLine.split(/\s+/).filter(tag => tag && !text.includes(tag.split('=')[0]));
         if (missing.length) prefixLines.push(tagLine);
     }
-    if (storyboardReferenceLine && !/分镜图视觉参考|storyboard visual reference/i.test(text)) {
+    if (storyboardReferenceLine && !/【图6】|首帧锚定图|first-frame lock|reference photo/i.test(text)) {
         prefixLines.push(storyboardReferenceLine);
     }
     return prefixLines.length ? `${prefixLines.join('\n')}\n${text}` : text;
@@ -8473,7 +8476,7 @@ function buildMainlineVideoGenerationPrompt(seg, index, imagePrompt, manualVideo
     const duration = normalizeVideoDuration(seg?.duration || 5);
     const videoSourcePrompt = sanitizeImagePromptForVideoPrompt(imagePrompt);
     const storyboardLine = seg?.storyboard_image_path
-        ? `上传分镜图是视频生成的视觉参考图，只用于参考构图、镜头角度、人物站位、主体比例、前中后景、景深、光影节奏和动作方向；参考已生成分镜图 ${seg.storyboard_image_path}。`
+        ? `上传分镜图是生视频接口的首帧锚定图 / image-to-video first-frame lock，不作为画面中物体；视频第一帧必须严格匹配分镜图01起始格或当前片段对应视觉区域的构图、镜头高度、人物站位、主体比例、前中后景、景深和光影节奏；前0.5-1秒先保持锁帧构图，再从该首帧自然运动；参考已生成分镜图 ${seg.storyboard_image_path}。`
         : '当前片段尚未附带分镜图；不要自行重新拆段或重排镜头。';
     const manual = String(manualVideoPrompt || '').trim();
     return [
@@ -8496,28 +8499,32 @@ async function generateSingleVideo(index, options = {}) {
     const editorPrompt = (editor ? readMentionEditorValue(editor) : (seg.prompt || seg.prompt_text || '')).trim();
     const storyboardPromptEl = document.getElementById(`storyboardPrompt-${index}`);
     const imagePrompt = (storyboardPromptEl?.value || seg.storyboard_prompt || '').trim();
-    const mainlineVideoFlow = true;
+    const mainlineVideoFlow = isStoryboardModeEnabled();
 
-    if (!imagePrompt) {
+    if (mainlineVideoFlow && !imagePrompt) {
         showToast(`片段 ${index + 1} 请先生成 Image Prompt，再生成视频`, 'warning');
         return false;
     }
-    if (!seg.storyboard_image_path) {
-        showToast(`片段 ${index + 1} 请先生成分镜图，再生成视频`, 'warning');
+    if (mainlineVideoFlow && !seg.storyboard_image_path) {
+        showToast(`片段 ${index + 1} 请先生成分镜图，再生成视频；关闭分镜驱动可走兼容旧流程`, 'warning');
         return false;
     }
-    seg.storyboard_prompt = imagePrompt;
+    if (imagePrompt) {
+        seg.storyboard_prompt = imagePrompt;
+    }
 
     const manualVideoPrompt = seg._videoPromptDirty && editorPrompt && !isLikelySourceScriptText(editorPrompt, seg) ? editorPrompt : '';
     let savedVideoPrompt = getSegmentVideoPrompt(seg);
-    if (!manualVideoPrompt && !savedVideoPrompt) {
+    if (mainlineVideoFlow && !manualVideoPrompt && !savedVideoPrompt) {
         const generated = await generateVideoPrompt(index, { silentLoading: true });
         if (generated) {
             const refreshedSeg = currentSegments[index] || seg;
             savedVideoPrompt = getSegmentVideoPrompt(refreshedSeg);
         }
     }
-    let prompt = manualVideoPrompt || savedVideoPrompt;
+    let prompt = mainlineVideoFlow
+        ? (manualVideoPrompt || savedVideoPrompt)
+        : editorPrompt;
     if (options.continuationPrefix) {
         prompt = applyContinuationPromptPrefix(prompt);
     }
@@ -8525,11 +8532,13 @@ async function generateSingleVideo(index, options = {}) {
         showToast(`片段 ${index + 1} 提示词不能为空`, 'warning');
         return false;
     }
-    seg.video_prompt_text = prompt;
-    if (editor) writeMentionEditorValue(editor, prompt);
+    if (!mainlineVideoFlow || manualVideoPrompt || savedVideoPrompt) {
+        seg.video_prompt_text = prompt;
+        if (editor) writeMentionEditorValue(editor, prompt);
+    }
 
     const selectedMode = document.getElementById(`segMode-${index}`)?.value || seg._mode || 'text_to_video';
-    const mode = 'omni_reference';
+    const mode = (mainlineVideoFlow && seg.storyboard_image_path) ? 'omni_reference' : selectedMode;
     const ratio = document.getElementById(`segRatio-${index}`)?.value || seg._ratio || '16:9';
     const duration = normalizeVideoDuration(document.getElementById(`segDuration-${index}`)?.value || seg.duration || 5);
     const fileInput = document.getElementById(`segFile-${index}`);
@@ -8556,23 +8565,12 @@ async function generateSingleVideo(index, options = {}) {
         formData.append('mode', mode);
         formData.append('ratio', ratio);
         formData.append('duration', duration);
-        formData.append('include_storyboard_frames', '1');
-        formData.append('storyboard_image_path', seg.storyboard_image_path);
-        formData.append('storyboard_reference_image', seg.storyboard_image_path);
-        formData.append('reference_images', seg.storyboard_image_path);
-        formData.append('reference_image_labels', '分镜图视觉参考');
-        try {
-            const storyboardImageUrl = seg.storyboard_image_path.startsWith('http') ? seg.storyboard_image_path : `/${seg.storyboard_image_path.replace(/^\/+/, '')}`;
-            const storyboardImageRes = await fetch(storyboardImageUrl);
-            if (storyboardImageRes.ok) {
-                const storyboardImageBlob = await storyboardImageRes.blob();
-                const ext = (seg.storyboard_image_path.split('.').pop() || 'png').split(/[?#]/)[0] || 'png';
-                formData.append('reference_files', storyboardImageBlob, `storyboard-${index + 1}.${ext}`);
-            } else {
-                console.warn('读取分镜图作为 reference_files 失败:', storyboardImageUrl, storyboardImageRes.status);
-            }
-        } catch (e) {
-            console.warn('读取分镜图作为 reference_files 失败:', e);
+        formData.append('include_storyboard_frames', isStoryboardModeEnabled() ? '1' : '0');
+        if (mainlineVideoFlow && seg.storyboard_image_path) {
+            formData.append('storyboard_image_path', seg.storyboard_image_path);
+            formData.append('storyboard_reference_image', seg.storyboard_image_path);
+            formData.append('reference_images', seg.storyboard_image_path);
+            formData.append('reference_image_labels', '首帧锁帧参考图');
         }
         if (options.referenceVideoUrl) formData.append('reference_video_url', options.referenceVideoUrl);
         if (options.referenceVideoPath) formData.append('reference_video_path', options.referenceVideoPath);
@@ -9708,22 +9706,19 @@ async function viewProject(projectId, options = {}) {
         currentProject = projectId;
         currentProjectInfo = project || { id: projectId, name: projectId, status: '' };
         currentScriptNarrative = project?.narrative_script || '';
-        currentSegments = segments.map(s => {
-            const sourceText = sanitizeSegmentSourceText(s.source_script || s.source_script_chunk || s._original || s.original_script || s.raw_script || s.script_text || s.prompt_text || s.prompt || '', s);
-            return {
+        currentSegments = segments.map(s => ({
             ...s,
-            prompt: sourceText,
-            prompt_text: sourceText,
-            source_script: sourceText,
-            _original: sourceText,
+            prompt: sanitizeSegmentSourceText(s.source_script || s.prompt_text || s.prompt || '', s),
+            prompt_text: sanitizeSegmentSourceText(s.source_script || s.prompt_text || s.prompt || '', s),
+            source_script: sanitizeSegmentSourceText(s.source_script || s.prompt_text || s.prompt || '', s),
+            _original: sanitizeSegmentSourceText(s.source_script || s.prompt_text || s.prompt || '', s),
             storyboard_prompt: s.storyboard_prompt || (isGeneratedStoryboardPromptText(s.prompt_text || s.prompt || '') && !isLegacyStoryboardPrompt(s.prompt_text || s.prompt || '') ? (s.prompt_text || s.prompt || '') : ''),
             _fullNarrative: currentScriptNarrative,
             _backboneCompact: '',
             video_prompt_text: ((s.video_prompt_text || s.video_prompt || '') && !isLikelySourceScriptText(s.video_prompt_text || s.video_prompt || '', s)) ? (s.video_prompt_text || s.video_prompt || '') : (isGeneratedVideoPromptText(s.prompt_text || s.prompt || '', s) ? (s.prompt_text || s.prompt || '') : ''),
             duration: Number(s.duration || 5),
             storyboard_count: Number(s.storyboard_count || 0)
-            };
-        });
+        }));
         hydratePipelineSkillOutputs(currentSegments);
         activeSegmentEditIndex = 0;
         storyboardConfirmed = currentSegments.length > 0;
